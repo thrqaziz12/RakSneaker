@@ -15,6 +15,7 @@
 // =============================================================================
 
 import 'package:flutter/material.dart';
+import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 import 'login_screen.dart';
 
 // ---------------------------------------------------------------------------
@@ -67,10 +68,7 @@ class HomeScreen extends StatelessWidget {
         // Garis bawah halus sebagai separator.
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1),
-          child: Container(
-            height: 1,
-            color: kBorderColor,
-          ),
+          child: Container(height: 1, color: kBorderColor),
         ),
         title: Row(
           children: [
@@ -86,11 +84,7 @@ class HomeScreen extends StatelessWidget {
                 ),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: const Icon(
-                Icons.sports,
-                color: Colors.white,
-                size: 18,
-              ),
+              child: Icon(MdiIcons.shoeSneaker, color: Colors.white, size: 18),
             ),
             const SizedBox(width: 10),
             const Text(
@@ -143,10 +137,7 @@ class HomeScreen extends StatelessWidget {
             const SizedBox(height: 20),
             const Text(
               'Selamat datang,',
-              style: TextStyle(
-                color: kTextMuted,
-                fontSize: 16,
-              ),
+              style: TextStyle(color: kTextMuted, fontSize: 16),
             ),
             const SizedBox(height: 6),
             Text(
@@ -160,10 +151,7 @@ class HomeScreen extends StatelessWidget {
             const SizedBox(height: 8),
             const Text(
               'Siap mengelola koleksi sneakermu 👟',
-              style: TextStyle(
-                color: kTextFaint,
-                fontSize: 14,
-              ),
+              style: TextStyle(color: kTextFaint, fontSize: 14),
             ),
             const SizedBox(height: 48),
             // Kartu dekoratif — permukaan aksen oranye muda.
