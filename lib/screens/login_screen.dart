@@ -191,19 +191,21 @@ class _LoginScreenState extends State<LoginScreen>
                                 boxShadow: [
                                   BoxShadow(
                                     // Efek bayangan oranye lembut (light mode).
-                                    color: kPrimaryColor.withValues(alpha: 0.30),
+                                    color: kPrimaryColor.withValues(
+                                      alpha: 0.30,
+                                    ),
                                     blurRadius: 20,
                                     spreadRadius: 2,
                                     offset: const Offset(0, 6),
                                   ),
                                 ],
                               ),
-                              child: const Icon(
+                              child: Icon(
                                 // Menggunakan Icons.sports bawaan Flutter sebagai
                                 // fallback yang selalu render. Ganti dengan
                                 // MdiIcons.shoeSneaker jika font MDI sudah
                                 // terdaftar dengan benar.
-                                Icons.sports,
+                                MdiIcons.shoeSneaker,
                                 color: Colors.white,
                                 size: 40,
                               ),
@@ -233,10 +235,7 @@ class _LoginScreenState extends State<LoginScreen>
                             // Label halaman.
                             const Text(
                               'Masuk ke akun kamu',
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: kTextFaint,
-                              ),
+                              style: TextStyle(fontSize: 14, color: kTextFaint),
                             ),
                           ],
                         ),
