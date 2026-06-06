@@ -9,12 +9,37 @@
 //   - Animasi fade & slide saat halaman pertama dibuka
 //   - Toggle visibility password
 //   - Navigasi ke RegisterScreen dan HomeScreen
+//
+// Tema Warna (Sneaker Collection Theme):
+//   - Primary Accent : #FF6B35 (Oranye Sneaker)
+//   - Background     : #0F0E0C (Hitam Hangat)
+//   - Surface        : #1C1A16 (Abu Karbon Hangat)
+//   - Error          : #FF4D6D (Merah)
 // =============================================================================
 
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 import 'register_screen.dart';
 import 'home_screen.dart';
+
+// ---------------------------------------------------------------------------
+// Konstanta Warna — Sneaker Collection Theme
+// ---------------------------------------------------------------------------
+
+/// Aksen utama: oranye-merah khas kultur sneaker/streetwear.
+const kPrimaryColor = Color(0xFFFF6B35);
+
+/// Varian lebih gelap dari aksen utama (hover/active).
+const kPrimaryDark = Color(0xFFD94F1A);
+
+/// Warna latar paling gelap (background utama aplikasi).
+const kBgDark = Color(0xFF0F0E0C);
+
+/// Warna permukaan card / container (satu level lebih terang dari bg).
+const kSurfaceDark = Color(0xFF1C1A16);
+
+/// Warna teks merah untuk error.
+const kErrorColor = Color(0xFFFF4D6D);
 
 /// Halaman login yang menampilkan form username dan password.
 class LoginScreen extends StatefulWidget {
@@ -27,54 +52,32 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen>
     with SingleTickerProviderStateMixin {
   // --- Form & Controller ---
-  /// Key global untuk mengontrol validasi form.
   final _formKey = GlobalKey<FormState>();
-
-  /// Controller untuk field input username.
   final _usernameController = TextEditingController();
-
-  /// Controller untuk field input password.
   final _passwordController = TextEditingController();
-
-  /// Service autentikasi yang menangani logika login.
   final _authService = AuthService();
 
   // --- State ---
-  /// Menandakan proses login sedang berjalan (tampilkan loading indicator).
   bool _isLoading = false;
-
-  /// Mengontrol visibility karakter pada field password.
   bool _obscurePassword = true;
-
-  /// Pesan error yang ditampilkan jika login gagal.
   String? _errorMessage;
 
   // --- Animasi ---
-  /// Controller untuk mengelola animasi masuk halaman.
   late AnimationController _animController;
-
-  /// Animasi opacity (fade in) saat halaman muncul.
   late Animation<double> _fadeAnimation;
-
-  /// Animasi posisi (slide up) saat halaman muncul.
   late Animation<Offset> _slideAnimation;
 
   @override
   void initState() {
     super.initState();
-    // Inisialisasi AnimationController dengan durasi 800ms.
     _animController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 800),
     );
-
-    // Fade in dari transparan ke penuh.
     _fadeAnimation = CurvedAnimation(
       parent: _animController,
       curve: Curves.easeOut,
     );
-
-    // Slide dari bawah ke posisi normal.
     _slideAnimation = Tween<Offset>(
       begin: const Offset(0, 0.3),
       end: Offset.zero,
@@ -82,30 +85,18 @@ class _LoginScreenState extends State<LoginScreen>
       parent: _animController,
       curve: Curves.easeOutCubic,
     ));
-
-    // Mulai animasi saat widget pertama kali dibuat.
     _animController.forward();
   }
 
   @override
   void dispose() {
-    // Bebaskan semua resource controller saat widget dihapus dari tree.
     _animController.dispose();
     _usernameController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
 
-  /// Menangani proses login saat tombol "Masuk" ditekan.
-  ///
-  /// Alur:
-  /// 1. Validasi form input.
-  /// 2. Tampilkan loading indicator.
-  /// 3. Panggil [AuthService.login] dengan username & password.
-  /// 4. Jika berhasil → navigasi ke [HomeScreen].
-  /// 5. Jika gagal → tampilkan pesan error.
   Future<void> _handleLogin() async {
-    // Batalkan jika form tidak valid.
     if (!_formKey.currentState!.validate()) return;
 
     setState(() {
@@ -113,10 +104,8 @@ class _LoginScreenState extends State<LoginScreen>
       _errorMessage = null;
     });
 
-    // Simulasi jeda kecil untuk UX yang lebih natural.
     await Future.delayed(const Duration(milliseconds: 600));
 
-    // Coba autentikasi user; mengembalikan UserModel jika berhasil.
     final user = _authService.login(
       username: _usernameController.text,
       password: _passwordController.text,
@@ -124,11 +113,9 @@ class _LoginScreenState extends State<LoginScreen>
 
     setState(() => _isLoading = false);
 
-    // Pastikan widget masih mounted sebelum melakukan navigasi.
     if (!mounted) return;
 
     if (user != null) {
-      // Login berhasil: pindah ke HomeScreen dan hapus LoginScreen dari stack.
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
@@ -136,7 +123,6 @@ class _LoginScreenState extends State<LoginScreen>
         ),
       );
     } else {
-      // Login gagal: tampilkan pesan error di bawah form.
       setState(() {
         _errorMessage = 'Username atau password salah';
       });
@@ -145,15 +131,13 @@ class _LoginScreenState extends State<LoginScreen>
 
   @override
   Widget build(BuildContext context) {
-    // Ambil ukuran layar untuk menghitung tinggi konten agar pas di viewport.
     final size = MediaQuery.of(context).size;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0D0D1A), // Warna latar gelap utama.
+      backgroundColor: kBgDark,
       body: SafeArea(
         child: SingleChildScrollView(
           child: SizedBox(
-            // Tinggi tepat satu layar (dikurangi safe area atas & bawah).
             height: size.height -
                 MediaQuery.of(context).padding.top -
                 MediaQuery.of(context).padding.bottom,
@@ -174,51 +158,65 @@ class _LoginScreenState extends State<LoginScreen>
                       Center(
                         child: Column(
                           children: [
-                            // Ikon toko dengan efek glow ungu.
+                            // Icon sepatu sneaker dengan efek glow oranye.
                             Container(
-                              width: 72,
-                              height: 72,
+                              width: 80,
+                              height: 80,
                               decoration: BoxDecoration(
-                                color: const Color(0xFF6C63FF),
-                                borderRadius: BorderRadius.circular(20),
+                                // Gradient oranye → merah-oranye khas sol sneaker.
+                                gradient: const LinearGradient(
+                                  colors: [
+                                    Color(0xFFFF6B35),
+                                    Color(0xFFD94F1A),
+                                  ],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                ),
+                                borderRadius: BorderRadius.circular(22),
                                 boxShadow: [
                                   BoxShadow(
-                                    // Efek glow: warna ungu dengan opacity 40%.
-                                    // Menggunakan withValues(alpha:) — pengganti
-                                    // withOpacity() yang sudah deprecated.
-                                    color: const Color(0xFF6C63FF)
-                                        .withValues(alpha: 0.4),
-                                    blurRadius: 24,
+                                    // Efek glow oranye.
+                                    color: kPrimaryColor.withValues(alpha: 0.45),
+                                    blurRadius: 28,
                                     spreadRadius: 4,
                                   ),
                                 ],
                               ),
                               child: const Icon(
-                                Icons.storefront_rounded,
+                                // Ikon sneaker/sepatu olahraga.
+                                Icons.directions_run_rounded,
                                 color: Colors.white,
-                                size: 36,
+                                size: 40,
                               ),
                             ),
-                            const SizedBox(height: 16),
+                            const SizedBox(height: 18),
                             // Nama aplikasi.
                             const Text(
                               'RakSneaker',
                               style: TextStyle(
-                                fontSize: 28,
+                                fontSize: 30,
                                 fontWeight: FontWeight.bold,
                                 color: Colors.white,
-                                letterSpacing: 1.2,
+                                letterSpacing: 1.5,
                               ),
                             ),
                             const SizedBox(height: 6),
-                            // Subtitle / tagline halaman login.
+                            // Tagline on-brand.
+                            Text(
+                              'Koleksi sneakermu, tertata rapi',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: Colors.white.withValues(alpha: 0.5),
+                                letterSpacing: 0.3,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            // Label halaman.
                             Text(
                               'Masuk ke akun kamu',
                               style: TextStyle(
                                 fontSize: 14,
-                                // withValues(alpha:) menggantikan withOpacity()
-                                // yang deprecated sejak Flutter 3.27.
-                                color: Colors.white.withValues(alpha: 0.55),
+                                color: Colors.white.withValues(alpha: 0.4),
                               ),
                             ),
                           ],
@@ -233,7 +231,6 @@ class _LoginScreenState extends State<LoginScreen>
                         key: _formKey,
                         child: Column(
                           children: [
-                            // Field username.
                             _buildTextField(
                               controller: _usernameController,
                               label: 'Username',
@@ -247,8 +244,6 @@ class _LoginScreenState extends State<LoginScreen>
                               },
                             ),
                             const SizedBox(height: 16),
-
-                            // Field password dengan toggle show/hide.
                             _buildTextField(
                               controller: _passwordController,
                               label: 'Password',
@@ -278,7 +273,7 @@ class _LoginScreenState extends State<LoginScreen>
                       ),
 
                       // -------------------------------------------------------
-                      // Pesan Error (hanya tampil jika login gagal)
+                      // Pesan Error
                       // -------------------------------------------------------
                       if (_errorMessage != null) ...
                         [
@@ -287,25 +282,21 @@ class _LoginScreenState extends State<LoginScreen>
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 14, vertical: 10),
                             decoration: BoxDecoration(
-                              // Latar merah transparan 12%.
-                              color: const Color(0xFFFF4D6D)
-                                  .withValues(alpha: 0.12),
+                              color: kErrorColor.withValues(alpha: 0.12),
                               borderRadius: BorderRadius.circular(10),
                               border: Border.all(
-                                // Border merah transparan 30%.
-                                color: const Color(0xFFFF4D6D)
-                                    .withValues(alpha: 0.3),
+                                color: kErrorColor.withValues(alpha: 0.3),
                               ),
                             ),
                             child: Row(
                               children: [
                                 const Icon(Icons.error_outline,
-                                    color: Color(0xFFFF4D6D), size: 18),
+                                    color: kErrorColor, size: 18),
                                 const SizedBox(width: 8),
                                 Text(
                                   _errorMessage!,
                                   style: const TextStyle(
-                                    color: Color(0xFFFF4D6D),
+                                    color: kErrorColor,
                                     fontSize: 13,
                                   ),
                                 ),
@@ -323,17 +314,16 @@ class _LoginScreenState extends State<LoginScreen>
                         width: double.infinity,
                         height: 52,
                         child: ElevatedButton(
-                          // Nonaktifkan tombol saat loading.
                           onPressed: _isLoading ? null : _handleLogin,
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF6C63FF),
+                            // Tombol oranye sneaker.
+                            backgroundColor: kPrimaryColor,
                             foregroundColor: Colors.white,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(14),
                             ),
                             elevation: 0,
                           ),
-                          // Tampilkan spinner saat loading, teks normal jika tidak.
                           child: _isLoading
                               ? const SizedBox(
                                   width: 22,
@@ -357,7 +347,7 @@ class _LoginScreenState extends State<LoginScreen>
                       const Spacer(),
 
                       // -------------------------------------------------------
-                      // Link menuju halaman Register
+                      // Link Register
                       // -------------------------------------------------------
                       Center(
                         child: GestureDetector(
@@ -381,7 +371,8 @@ class _LoginScreenState extends State<LoginScreen>
                                   TextSpan(
                                     text: 'Daftar sekarang',
                                     style: TextStyle(
-                                      color: Color(0xFF6C63FF),
+                                      // Link oranye.
+                                      color: kPrimaryColor,
                                       fontWeight: FontWeight.w600,
                                     ),
                                   ),
@@ -402,16 +393,6 @@ class _LoginScreenState extends State<LoginScreen>
     );
   }
 
-  /// Membangun widget TextField yang konsisten dan dapat dikonfigurasi.
-  ///
-  /// Parameter:
-  /// - [controller] : TextEditingController untuk membaca nilai input.
-  /// - [label]      : Teks label yang ditampilkan di atas field.
-  /// - [hint]       : Teks placeholder di dalam field.
-  /// - [icon]       : Ikon prefix di sisi kiri field.
-  /// - [obscureText]: Sembunyikan karakter (untuk password). Default: false.
-  /// - [suffixIcon] : Widget opsional di sisi kanan field (misal: tombol eye).
-  /// - [validator]  : Fungsi validasi yang dijalankan saat form disubmit.
   Widget _buildTextField({
     required TextEditingController controller,
     required String label,
@@ -424,7 +405,6 @@ class _LoginScreenState extends State<LoginScreen>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Label di atas field.
         Text(
           label,
           style: const TextStyle(
@@ -434,7 +414,6 @@ class _LoginScreenState extends State<LoginScreen>
           ),
         ),
         const SizedBox(height: 8),
-        // Input field dengan styling dark theme.
         TextFormField(
           controller: controller,
           obscureText: obscureText,
@@ -448,31 +427,26 @@ class _LoginScreenState extends State<LoginScreen>
             prefixIcon: Icon(icon, color: Colors.white38, size: 20),
             suffixIcon: suffixIcon,
             filled: true,
-            fillColor: const Color(0xFF1E1E30),
-            // Border default: tanpa garis.
+            // Surface card hangat.
+            fillColor: kSurfaceDark,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide.none,
             ),
-            // Border saat field aktif (focused): ungu.
+            // Border fokus: oranye sneaker.
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide:
-                  const BorderSide(color: Color(0xFF6C63FF), width: 1.5),
+              borderSide: const BorderSide(color: kPrimaryColor, width: 1.5),
             ),
-            // Border saat ada error validasi.
             errorBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide:
-                  const BorderSide(color: Color(0xFFFF4D6D), width: 1),
+              borderSide: const BorderSide(color: kErrorColor, width: 1),
             ),
-            // Border saat ada error dan field masih aktif.
             focusedErrorBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide:
-                  const BorderSide(color: Color(0xFFFF4D6D), width: 1.5),
+              borderSide: const BorderSide(color: kErrorColor, width: 1.5),
             ),
-            errorStyle: const TextStyle(color: Color(0xFFFF4D6D)),
+            errorStyle: const TextStyle(color: kErrorColor),
             contentPadding:
                 const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           ),

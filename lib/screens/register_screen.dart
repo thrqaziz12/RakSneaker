@@ -8,10 +8,27 @@
 //   - Registrasi menggunakan AuthService (simpan ke Hive + enkripsi AES)
 //   - Animasi fade & slide saat halaman pertama dibuka
 //   - Dialog sukses sebelum redirect ke halaman Login
+//
+// Tema Warna (Sneaker Collection Theme):
+//   - Primary Accent : #FF6B35 (Oranye Sneaker)
+//   - Background     : #0F0E0C (Hitam Hangat)
+//   - Surface        : #1C1A16 (Abu Karbon Hangat)
+//   - Success        : #4ADE80 (Hijau)
+//   - Error          : #FF4D6D (Merah)
 // =============================================================================
 
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
+
+// ---------------------------------------------------------------------------
+// Konstanta Warna — Sneaker Collection Theme
+// (sama dengan login_screen.dart agar konsisten)
+// ---------------------------------------------------------------------------
+const kPrimaryColor = Color(0xFFFF6B35);
+const kBgDark = Color(0xFF0F0E0C);
+const kSurfaceDark = Color(0xFF1C1A16);
+const kErrorColor = Color(0xFFFF4D6D);
+const kSuccessColor = Color(0xFF4ADE80);
 
 /// Halaman registrasi untuk membuat akun baru.
 class RegisterScreen extends StatefulWidget {
@@ -23,64 +40,33 @@ class RegisterScreen extends StatefulWidget {
 
 class _RegisterScreenState extends State<RegisterScreen>
     with SingleTickerProviderStateMixin {
-  // --- Form & Controller ---
-  /// Key global untuk mengontrol validasi form.
   final _formKey = GlobalKey<FormState>();
-
-  /// Controller untuk field input username.
   final _usernameController = TextEditingController();
-
-  /// Controller untuk field input email.
   final _emailController = TextEditingController();
-
-  /// Controller untuk field input password.
   final _passwordController = TextEditingController();
-
-  /// Controller untuk field konfirmasi password.
   final _confirmPasswordController = TextEditingController();
-
-  /// Service autentikasi yang menangani logika registrasi.
   final _authService = AuthService();
 
-  // --- State ---
-  /// Menandakan proses registrasi sedang berjalan.
   bool _isLoading = false;
-
-  /// Mengontrol visibility karakter pada field password.
   bool _obscurePassword = true;
-
-  /// Mengontrol visibility karakter pada field konfirmasi password.
   bool _obscureConfirm = true;
-
-  /// Pesan error dari server/service yang ditampilkan di bawah form.
   String? _errorMessage;
 
-  // --- Animasi ---
-  /// Controller untuk mengelola animasi masuk halaman.
   late AnimationController _animController;
-
-  /// Animasi opacity (fade in) saat halaman muncul.
   late Animation<double> _fadeAnimation;
-
-  /// Animasi posisi (slide up) saat halaman muncul.
   late Animation<Offset> _slideAnimation;
 
   @override
   void initState() {
     super.initState();
-    // Inisialisasi AnimationController dengan durasi 800ms.
     _animController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 800),
     );
-
-    // Fade in dari transparan ke penuh.
     _fadeAnimation = CurvedAnimation(
       parent: _animController,
       curve: Curves.easeOut,
     );
-
-    // Slide dari bawah ke posisi normal.
     _slideAnimation = Tween<Offset>(
       begin: const Offset(0, 0.3),
       end: Offset.zero,
@@ -88,14 +74,11 @@ class _RegisterScreenState extends State<RegisterScreen>
       parent: _animController,
       curve: Curves.easeOutCubic,
     ));
-
-    // Mulai animasi saat widget pertama kali dibuat.
     _animController.forward();
   }
 
   @override
   void dispose() {
-    // Bebaskan semua resource controller saat widget dihapus dari tree.
     _animController.dispose();
     _usernameController.dispose();
     _emailController.dispose();
@@ -104,16 +87,7 @@ class _RegisterScreenState extends State<RegisterScreen>
     super.dispose();
   }
 
-  /// Menangani proses registrasi saat tombol "Daftar" ditekan.
-  ///
-  /// Alur:
-  /// 1. Validasi form input (client-side).
-  /// 2. Tampilkan loading indicator.
-  /// 3. Panggil [AuthService.register] untuk menyimpan user baru ke Hive.
-  /// 4. Jika berhasil → tampilkan dialog sukses → kembali ke [LoginScreen].
-  /// 5. Jika gagal → tampilkan pesan error dari service.
   Future<void> _handleRegister() async {
-    // Batalkan jika form tidak valid (validasi client-side).
     if (!_formKey.currentState!.validate()) return;
 
     setState(() {
@@ -121,8 +95,6 @@ class _RegisterScreenState extends State<RegisterScreen>
       _errorMessage = null;
     });
 
-    // Panggil AuthService; mengembalikan null jika berhasil,
-    // atau String pesan error jika gagal.
     final error = await _authService.register(
       username: _usernameController.text,
       email: _emailController.text,
@@ -131,44 +103,42 @@ class _RegisterScreenState extends State<RegisterScreen>
 
     setState(() => _isLoading = false);
 
-    // Pastikan widget masih mounted sebelum lanjut.
     if (!mounted) return;
 
     if (error == null) {
-      // Registrasi berhasil: tampilkan dialog konfirmasi.
       await showDialog(
         context: context,
-        barrierDismissible: false, // User harus tekan OK untuk menutup.
+        barrierDismissible: false,
         builder: (_) => AlertDialog(
-          backgroundColor: const Color(0xFF1E1E30),
+          // Dialog surface menggunakan warna karbon hangat.
+          backgroundColor: kSurfaceDark,
           shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16)),
           title: const Row(
             children: [
               Icon(Icons.check_circle_outline_rounded,
-                  color: Color(0xFF4ADE80), size: 24),
+                  color: kSuccessColor, size: 24),
               SizedBox(width: 8),
               Text('Registrasi Berhasil',
                   style: TextStyle(color: Colors.white, fontSize: 18)),
             ],
           ),
           content: const Text(
-            'Akun kamu berhasil dibuat. Silakan login untuk melanjutkan.',
+            'Akun kamu berhasil dibuat. Silakan login untuk mulai mengelola koleksi sneakermu!',
             style: TextStyle(color: Colors.white70, fontSize: 14),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
               child: const Text('OK',
-                  style: TextStyle(color: Color(0xFF6C63FF), fontSize: 15)),
+                  // Tombol OK menggunakan warna aksen oranye.
+                  style: TextStyle(color: kPrimaryColor, fontSize: 15)),
             ),
           ],
         ),
       );
-      // Setelah dialog ditutup, kembali ke halaman Login.
       if (mounted) Navigator.pop(context);
     } else {
-      // Registrasi gagal: tampilkan pesan error dari service.
       setState(() => _errorMessage = error);
     }
   }
@@ -176,7 +146,7 @@ class _RegisterScreenState extends State<RegisterScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0D0D1A), // Warna latar gelap utama.
+      backgroundColor: kBgDark,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 28.0),
@@ -197,7 +167,7 @@ class _RegisterScreenState extends State<RegisterScreen>
                     child: Container(
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF1E1E30),
+                        color: kSurfaceDark,
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: const Icon(Icons.arrow_back_ios_new_rounded,
@@ -207,7 +177,7 @@ class _RegisterScreenState extends State<RegisterScreen>
                   const SizedBox(height: 32),
 
                   // -------------------------------------------------------
-                  // Judul Halaman
+                  // Judul & Sub-judul
                   // -------------------------------------------------------
                   const Text(
                     'Buat Akun Baru',
@@ -220,10 +190,9 @@ class _RegisterScreenState extends State<RegisterScreen>
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    'Daftarkan dirimu untuk mulai belanja sneaker',
+                    'Daftarkan dirimu dan mulai kelola koleksi sneakermu',
                     style: TextStyle(
                       fontSize: 14,
-                      // withValues(alpha:) menggantikan withOpacity() deprecated.
                       color: Colors.white.withValues(alpha: 0.5),
                     ),
                   ),
@@ -236,7 +205,6 @@ class _RegisterScreenState extends State<RegisterScreen>
                     key: _formKey,
                     child: Column(
                       children: [
-                        // Field username (min. 3 karakter).
                         _buildTextField(
                           controller: _usernameController,
                           label: 'Username',
@@ -253,8 +221,6 @@ class _RegisterScreenState extends State<RegisterScreen>
                           },
                         ),
                         const SizedBox(height: 16),
-
-                        // Field email dengan validasi format dasar.
                         _buildTextField(
                           controller: _emailController,
                           label: 'Email',
@@ -272,8 +238,6 @@ class _RegisterScreenState extends State<RegisterScreen>
                           },
                         ),
                         const SizedBox(height: 16),
-
-                        // Field password (min. 6 karakter).
                         _buildTextField(
                           controller: _passwordController,
                           label: 'Password',
@@ -302,8 +266,6 @@ class _RegisterScreenState extends State<RegisterScreen>
                           },
                         ),
                         const SizedBox(height: 16),
-
-                        // Field konfirmasi password (harus sama dengan password).
                         _buildTextField(
                           controller: _confirmPasswordController,
                           label: 'Konfirmasi Password',
@@ -325,7 +287,6 @@ class _RegisterScreenState extends State<RegisterScreen>
                             if (val == null || val.isEmpty) {
                               return 'Konfirmasi password tidak boleh kosong';
                             }
-                            // Pastikan cocok dengan password utama.
                             if (val != _passwordController.text) {
                               return 'Password tidak cocok';
                             }
@@ -337,7 +298,7 @@ class _RegisterScreenState extends State<RegisterScreen>
                   ),
 
                   // -------------------------------------------------------
-                  // Pesan Error (hanya tampil jika registrasi gagal)
+                  // Pesan Error
                   // -------------------------------------------------------
                   if (_errorMessage != null) ...
                     [
@@ -346,26 +307,22 @@ class _RegisterScreenState extends State<RegisterScreen>
                         padding: const EdgeInsets.symmetric(
                             horizontal: 14, vertical: 10),
                         decoration: BoxDecoration(
-                          // Latar merah transparan 12%.
-                          color: const Color(0xFFFF4D6D)
-                              .withValues(alpha: 0.12),
+                          color: kErrorColor.withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(10),
                           border: Border.all(
-                            // Border merah transparan 30%.
-                            color: const Color(0xFFFF4D6D)
-                                .withValues(alpha: 0.3),
+                            color: kErrorColor.withValues(alpha: 0.3),
                           ),
                         ),
                         child: Row(
                           children: [
                             const Icon(Icons.error_outline,
-                                color: Color(0xFFFF4D6D), size: 18),
+                                color: kErrorColor, size: 18),
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(
                                 _errorMessage!,
                                 style: const TextStyle(
-                                  color: Color(0xFFFF4D6D),
+                                  color: kErrorColor,
                                   fontSize: 13,
                                 ),
                               ),
@@ -384,17 +341,16 @@ class _RegisterScreenState extends State<RegisterScreen>
                     width: double.infinity,
                     height: 52,
                     child: ElevatedButton(
-                      // Nonaktifkan tombol saat loading.
                       onPressed: _isLoading ? null : _handleRegister,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF6C63FF),
+                        // Tombol oranye sneaker.
+                        backgroundColor: kPrimaryColor,
                         foregroundColor: Colors.white,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(14),
                         ),
                         elevation: 0,
                       ),
-                      // Tampilkan spinner saat loading, teks normal jika tidak.
                       child: _isLoading
                           ? const SizedBox(
                               width: 22,
@@ -418,7 +374,7 @@ class _RegisterScreenState extends State<RegisterScreen>
                   const SizedBox(height: 24),
 
                   // -------------------------------------------------------
-                  // Link kembali ke halaman Login
+                  // Link kembali ke Login
                   // -------------------------------------------------------
                   Center(
                     child: GestureDetector(
@@ -434,7 +390,8 @@ class _RegisterScreenState extends State<RegisterScreen>
                             TextSpan(
                               text: 'Masuk di sini',
                               style: TextStyle(
-                                color: Color(0xFF6C63FF),
+                                // Link oranye.
+                                color: kPrimaryColor,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
@@ -453,17 +410,6 @@ class _RegisterScreenState extends State<RegisterScreen>
     );
   }
 
-  /// Membangun widget TextField yang konsisten dan dapat dikonfigurasi.
-  ///
-  /// Parameter:
-  /// - [controller]    : TextEditingController untuk membaca nilai input.
-  /// - [label]         : Teks label di atas field.
-  /// - [hint]          : Teks placeholder di dalam field.
-  /// - [icon]          : Ikon prefix di sisi kiri field.
-  /// - [obscureText]   : Sembunyikan karakter (untuk password). Default: false.
-  /// - [suffixIcon]    : Widget opsional di sisi kanan (misal: tombol eye).
-  /// - [keyboardType]  : Jenis keyboard (misal: emailAddress untuk field email).
-  /// - [validator]     : Fungsi validasi yang dijalankan saat form disubmit.
   Widget _buildTextField({
     required TextEditingController controller,
     required String label,
@@ -477,7 +423,6 @@ class _RegisterScreenState extends State<RegisterScreen>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Label di atas field.
         Text(
           label,
           style: const TextStyle(
@@ -487,7 +432,6 @@ class _RegisterScreenState extends State<RegisterScreen>
           ),
         ),
         const SizedBox(height: 8),
-        // Input field dengan styling dark theme.
         TextFormField(
           controller: controller,
           obscureText: obscureText,
@@ -502,31 +446,26 @@ class _RegisterScreenState extends State<RegisterScreen>
             prefixIcon: Icon(icon, color: Colors.white38, size: 20),
             suffixIcon: suffixIcon,
             filled: true,
-            fillColor: const Color(0xFF1E1E30),
-            // Border default: tanpa garis.
+            // Surface card hangat.
+            fillColor: kSurfaceDark,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide.none,
             ),
-            // Border saat field aktif (focused): ungu.
+            // Border fokus oranye sneaker.
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide:
-                  const BorderSide(color: Color(0xFF6C63FF), width: 1.5),
+              borderSide: const BorderSide(color: kPrimaryColor, width: 1.5),
             ),
-            // Border saat ada error validasi.
             errorBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide:
-                  const BorderSide(color: Color(0xFFFF4D6D), width: 1),
+              borderSide: const BorderSide(color: kErrorColor, width: 1),
             ),
-            // Border saat ada error dan field masih aktif.
             focusedErrorBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide:
-                  const BorderSide(color: Color(0xFFFF4D6D), width: 1.5),
+              borderSide: const BorderSide(color: kErrorColor, width: 1.5),
             ),
-            errorStyle: const TextStyle(color: Color(0xFFFF4D6D)),
+            errorStyle: const TextStyle(color: kErrorColor),
             contentPadding:
                 const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           ),
