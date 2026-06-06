@@ -18,6 +18,7 @@
 // =============================================================================
 
 import 'package:flutter/material.dart';
+import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 import '../services/auth_service.dart';
 import 'register_screen.dart';
 import 'home_screen.dart';
@@ -78,13 +79,10 @@ class _LoginScreenState extends State<LoginScreen>
       parent: _animController,
       curve: Curves.easeOut,
     );
-    _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, 0.3),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(
-      parent: _animController,
-      curve: Curves.easeOutCubic,
-    ));
+    _slideAnimation =
+        Tween<Offset>(begin: const Offset(0, 0.3), end: Offset.zero).animate(
+          CurvedAnimation(parent: _animController, curve: Curves.easeOutCubic),
+        );
     _animController.forward();
   }
 
@@ -118,9 +116,7 @@ class _LoginScreenState extends State<LoginScreen>
     if (user != null) {
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(
-          builder: (_) => HomeScreen(username: user.username),
-        ),
+        MaterialPageRoute(builder: (_) => HomeScreen(username: user.username)),
       );
     } else {
       setState(() {
@@ -138,7 +134,8 @@ class _LoginScreenState extends State<LoginScreen>
       body: SafeArea(
         child: SingleChildScrollView(
           child: SizedBox(
-            height: size.height -
+            height:
+                size.height -
                 MediaQuery.of(context).padding.top -
                 MediaQuery.of(context).padding.bottom,
             child: FadeTransition(
@@ -176,15 +173,17 @@ class _LoginScreenState extends State<LoginScreen>
                                 boxShadow: [
                                   BoxShadow(
                                     // Efek glow oranye.
-                                    color: kPrimaryColor.withValues(alpha: 0.45),
+                                    color: kPrimaryColor.withValues(
+                                      alpha: 0.45,
+                                    ),
                                     blurRadius: 28,
                                     spreadRadius: 4,
                                   ),
                                 ],
                               ),
-                              child: const Icon(
+                              child: Icon(
                                 // Ikon sneaker/sepatu olahraga.
-                                Icons.directions_run_rounded,
+                                MdiIcons.shoeSneaker,
                                 color: Colors.white,
                                 size: 40,
                               ),
@@ -259,7 +258,8 @@ class _LoginScreenState extends State<LoginScreen>
                                   size: 20,
                                 ),
                                 onPressed: () => setState(
-                                    () => _obscurePassword = !_obscurePassword),
+                                  () => _obscurePassword = !_obscurePassword,
+                                ),
                               ),
                               validator: (val) {
                                 if (val == null || val.isEmpty) {
@@ -275,35 +275,39 @@ class _LoginScreenState extends State<LoginScreen>
                       // -------------------------------------------------------
                       // Pesan Error
                       // -------------------------------------------------------
-                      if (_errorMessage != null) ...
-                        [
-                          const SizedBox(height: 14),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 14, vertical: 10),
-                            decoration: BoxDecoration(
-                              color: kErrorColor.withValues(alpha: 0.12),
-                              borderRadius: BorderRadius.circular(10),
-                              border: Border.all(
-                                color: kErrorColor.withValues(alpha: 0.3),
-                              ),
-                            ),
-                            child: Row(
-                              children: [
-                                const Icon(Icons.error_outline,
-                                    color: kErrorColor, size: 18),
-                                const SizedBox(width: 8),
-                                Text(
-                                  _errorMessage!,
-                                  style: const TextStyle(
-                                    color: kErrorColor,
-                                    fontSize: 13,
-                                  ),
-                                ),
-                              ],
+                      if (_errorMessage != null) ...[
+                        const SizedBox(height: 14),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 10,
+                          ),
+                          decoration: BoxDecoration(
+                            color: kErrorColor.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                              color: kErrorColor.withValues(alpha: 0.3),
                             ),
                           ),
-                        ],
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.error_outline,
+                                color: kErrorColor,
+                                size: 18,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                _errorMessage!,
+                                style: const TextStyle(
+                                  color: kErrorColor,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
 
                       const SizedBox(height: 32),
 
@@ -355,7 +359,8 @@ class _LoginScreenState extends State<LoginScreen>
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                  builder: (_) => const RegisterScreen()),
+                                builder: (_) => const RegisterScreen(),
+                              ),
                             );
                           },
                           child: Padding(
@@ -421,9 +426,7 @@ class _LoginScreenState extends State<LoginScreen>
           style: const TextStyle(color: Colors.white),
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: TextStyle(
-              color: Colors.white.withValues(alpha: 0.25),
-            ),
+            hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.25)),
             prefixIcon: Icon(icon, color: Colors.white38, size: 20),
             suffixIcon: suffixIcon,
             filled: true,
@@ -447,8 +450,10 @@ class _LoginScreenState extends State<LoginScreen>
               borderSide: const BorderSide(color: kErrorColor, width: 1.5),
             ),
             errorStyle: const TextStyle(color: kErrorColor),
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 14,
+            ),
           ),
         ),
       ],
