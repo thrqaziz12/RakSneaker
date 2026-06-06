@@ -9,26 +9,56 @@
 //   - Animasi fade & slide saat halaman pertama dibuka
 //   - Dialog sukses sebelum redirect ke halaman Login
 //
-// Tema Warna (Sneaker Collection Theme):
+// Tema Warna (Light Mode — Sneaker Collection Theme):
 //   - Primary Accent : #FF6B35 (Oranye Sneaker)
-//   - Background     : #0F0E0C (Hitam Hangat)
-//   - Surface        : #1C1A16 (Abu Karbon Hangat)
-//   - Success        : #4ADE80 (Hijau)
-//   - Error          : #FF4D6D (Merah)
+//   - Background     : #FFF8F5 (Putih Hangat)
+//   - Surface        : #FFFFFF (Putih)
+//   - Surface Offset : #FFF0E8 (Krem Oranye Muda)
+//   - Text Utama     : #1A1A1A (Hampir Hitam)
+//   - Text Muted     : #6B6B6B (Abu)
+//   - Success        : #22C55E (Hijau)
+//   - Error          : #D92B4B (Merah)
 // =============================================================================
 
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 
 // ---------------------------------------------------------------------------
-// Konstanta Warna — Sneaker Collection Theme
-// (sama dengan login_screen.dart agar konsisten)
+// Konstanta Warna — Light Sneaker Theme (sesuai login_screen.dart)
 // ---------------------------------------------------------------------------
+
+/// Aksen utama: oranye-merah khas kultur sneaker/streetwear.
 const kPrimaryColor = Color(0xFFFF6B35);
-const kBgDark = Color(0xFF0F0E0C);
-const kSurfaceDark = Color(0xFF1C1A16);
-const kErrorColor = Color(0xFFFF4D6D);
-const kSuccessColor = Color(0xFF4ADE80);
+
+/// Varian lebih gelap dari aksen utama (hover/active).
+const kPrimaryDark = Color(0xFFD94F1A);
+
+/// Latar belakang utama: putih hangat.
+const kBgLight = Color(0xFFFFF8F5);
+
+/// Permukaan card / container: putih bersih.
+const kSurfaceLight = Color(0xFFFFFFFF);
+
+/// Permukaan aksen ringan: krem oranye muda.
+const kSurfaceAccent = Color(0xFFFFF0E8);
+
+/// Teks utama: hampir hitam.
+const kTextPrimary = Color(0xFF1A1A1A);
+
+/// Teks sekunder: abu.
+const kTextMuted = Color(0xFF6B6B6B);
+
+/// Teks tersier / placeholder.
+const kTextFaint = Color(0xFFB0B0B0);
+
+/// Warna border input.
+const kBorderColor = Color(0xFFE8E0DB);
+
+/// Warna teks merah untuk error.
+const kErrorColor = Color(0xFFD92B4B);
+
+/// Warna hijau untuk sukses.
+const kSuccessColor = Color(0xFF22C55E);
 
 /// Halaman registrasi untuk membuat akun baru.
 class RegisterScreen extends StatefulWidget {
@@ -110,8 +140,8 @@ class _RegisterScreenState extends State<RegisterScreen>
         context: context,
         barrierDismissible: false,
         builder: (_) => AlertDialog(
-          // Dialog surface menggunakan warna karbon hangat.
-          backgroundColor: kSurfaceDark,
+          // Dialog surface menggunakan putih bersih — sesuai light mode.
+          backgroundColor: kSurfaceLight,
           shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16)),
           title: const Row(
@@ -119,20 +149,31 @@ class _RegisterScreenState extends State<RegisterScreen>
               Icon(Icons.check_circle_outline_rounded,
                   color: kSuccessColor, size: 24),
               SizedBox(width: 8),
-              Text('Registrasi Berhasil',
-                  style: TextStyle(color: Colors.white, fontSize: 18)),
+              Text(
+                'Registrasi Berhasil',
+                style: TextStyle(
+                  color: kTextPrimary,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ],
           ),
           content: const Text(
             'Akun kamu berhasil dibuat. Silakan login untuk mulai mengelola koleksi sneakermu!',
-            style: TextStyle(color: Colors.white70, fontSize: 14),
+            style: TextStyle(color: kTextMuted, fontSize: 14),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('OK',
-                  // Tombol OK menggunakan warna aksen oranye.
-                  style: TextStyle(color: kPrimaryColor, fontSize: 15)),
+              child: const Text(
+                'OK',
+                style: TextStyle(
+                  color: kPrimaryColor,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
             ),
           ],
         ),
@@ -146,7 +187,7 @@ class _RegisterScreenState extends State<RegisterScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: kBgDark,
+      backgroundColor: kBgLight,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 28.0),
@@ -167,11 +208,19 @@ class _RegisterScreenState extends State<RegisterScreen>
                     child: Container(
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        color: kSurfaceDark,
+                        // Tombol back menggunakan surface krem oranye muda.
+                        color: kSurfaceAccent,
                         borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: kBorderColor,
+                          width: 1,
+                        ),
                       ),
-                      child: const Icon(Icons.arrow_back_ios_new_rounded,
-                          color: Colors.white70, size: 18),
+                      child: const Icon(
+                        Icons.arrow_back_ios_new_rounded,
+                        color: kTextMuted,
+                        size: 18,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 32),
@@ -184,16 +233,17 @@ class _RegisterScreenState extends State<RegisterScreen>
                     style: TextStyle(
                       fontSize: 26,
                       fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                      // Teks gelap di background terang — kontras tinggi.
+                      color: kTextPrimary,
                       letterSpacing: 0.5,
                     ),
                   ),
                   const SizedBox(height: 6),
-                  Text(
+                  const Text(
                     'Daftarkan dirimu dan mulai kelola koleksi sneakermu',
                     style: TextStyle(
                       fontSize: 14,
-                      color: Colors.white.withValues(alpha: 0.5),
+                      color: kTextMuted,
                     ),
                   ),
                   const SizedBox(height: 36),
@@ -249,7 +299,7 @@ class _RegisterScreenState extends State<RegisterScreen>
                               _obscurePassword
                                   ? Icons.visibility_off_outlined
                                   : Icons.visibility_outlined,
-                              color: Colors.white38,
+                              color: kTextFaint,
                               size: 20,
                             ),
                             onPressed: () => setState(
@@ -277,7 +327,7 @@ class _RegisterScreenState extends State<RegisterScreen>
                               _obscureConfirm
                                   ? Icons.visibility_off_outlined
                                   : Icons.visibility_outlined,
-                              color: Colors.white38,
+                              color: kTextFaint,
                               size: 20,
                             ),
                             onPressed: () => setState(
@@ -300,37 +350,36 @@ class _RegisterScreenState extends State<RegisterScreen>
                   // -------------------------------------------------------
                   // Pesan Error
                   // -------------------------------------------------------
-                  if (_errorMessage != null) ...
-                    [
-                      const SizedBox(height: 16),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 14, vertical: 10),
-                        decoration: BoxDecoration(
-                          color: kErrorColor.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(
-                            color: kErrorColor.withValues(alpha: 0.3),
-                          ),
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.error_outline,
-                                color: kErrorColor, size: 18),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                _errorMessage!,
-                                style: const TextStyle(
-                                  color: kErrorColor,
-                                  fontSize: 13,
-                                ),
-                              ),
-                            ),
-                          ],
+                  if (_errorMessage != null) ...[
+                    const SizedBox(height: 16),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: kErrorColor.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: kErrorColor.withValues(alpha: 0.25),
                         ),
                       ),
-                    ],
+                      child: Row(
+                        children: [
+                          const Icon(Icons.error_outline,
+                              color: kErrorColor, size: 18),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              _errorMessage!,
+                              style: const TextStyle(
+                                color: kErrorColor,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
 
                   const SizedBox(height: 32),
 
@@ -343,13 +392,13 @@ class _RegisterScreenState extends State<RegisterScreen>
                     child: ElevatedButton(
                       onPressed: _isLoading ? null : _handleRegister,
                       style: ElevatedButton.styleFrom(
-                        // Tombol oranye sneaker.
                         backgroundColor: kPrimaryColor,
                         foregroundColor: Colors.white,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(14),
                         ),
                         elevation: 0,
+                        shadowColor: kPrimaryColor.withValues(alpha: 0.30),
                       ),
                       child: _isLoading
                           ? const SizedBox(
@@ -380,17 +429,16 @@ class _RegisterScreenState extends State<RegisterScreen>
                     child: GestureDetector(
                       onTap: () => Navigator.pop(context),
                       child: RichText(
-                        text: TextSpan(
+                        text: const TextSpan(
                           text: 'Sudah punya akun? ',
                           style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.5),
+                            color: kTextMuted,
                             fontSize: 14,
                           ),
-                          children: const [
+                          children: [
                             TextSpan(
                               text: 'Masuk di sini',
                               style: TextStyle(
-                                // Link oranye.
                                 color: kPrimaryColor,
                                 fontWeight: FontWeight.w600,
                               ),
@@ -426,7 +474,8 @@ class _RegisterScreenState extends State<RegisterScreen>
         Text(
           label,
           style: const TextStyle(
-            color: Colors.white70,
+            // Label teks abu gelap — terbaca di light mode.
+            color: kTextMuted,
             fontSize: 13,
             fontWeight: FontWeight.w500,
           ),
@@ -437,20 +486,23 @@ class _RegisterScreenState extends State<RegisterScreen>
           obscureText: obscureText,
           keyboardType: keyboardType,
           validator: validator,
-          style: const TextStyle(color: Colors.white),
+          // Teks input gelap di background putih.
+          style: const TextStyle(color: kTextPrimary),
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: TextStyle(
-              color: Colors.white.withValues(alpha: 0.25),
-            ),
-            prefixIcon: Icon(icon, color: Colors.white38, size: 20),
+            hintStyle: const TextStyle(color: kTextFaint),
+            prefixIcon: Icon(icon, color: kTextFaint, size: 20),
             suffixIcon: suffixIcon,
             filled: true,
-            // Surface card hangat.
-            fillColor: kSurfaceDark,
+            // Surface putih bersih untuk input field.
+            fillColor: kSurfaceLight,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide.none,
+              borderSide: const BorderSide(color: kBorderColor, width: 1),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: kBorderColor, width: 1),
             ),
             // Border fokus oranye sneaker.
             focusedBorder: OutlineInputBorder(

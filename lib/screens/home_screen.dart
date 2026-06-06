@@ -6,18 +6,47 @@
 //   - Menampilkan sapaan dengan nama username yang sedang login
 //   - Tombol logout untuk kembali ke halaman LoginScreen
 //
-// Tema Warna (Sneaker Collection Theme):
+// Tema Warna (Light Mode — Sneaker Collection Theme):
 //   - Primary Accent : #FF6B35 (Oranye Sneaker)
-//   - Background     : #0F0E0C (Hitam Hangat)
-//   - Surface/AppBar : #1C1A16 (Abu Karbon Hangat)
+//   - Background     : #FFF8F5 (Putih Hangat)
+//   - Surface/AppBar : #FFFFFF (Putih)
+//   - Text Utama     : #1A1A1A (Hampir Hitam)
+//   - Text Muted     : #6B6B6B (Abu)
 // =============================================================================
 
 import 'package:flutter/material.dart';
 import 'login_screen.dart';
 
+// ---------------------------------------------------------------------------
+// Konstanta Warna — Light Sneaker Theme (sesuai login_screen.dart)
+// ---------------------------------------------------------------------------
+
+/// Aksen utama: oranye-merah khas kultur sneaker/streetwear.
 const kPrimaryColor = Color(0xFFFF6B35);
-const kBgDark = Color(0xFF0F0E0C);
-const kSurfaceDark = Color(0xFF1C1A16);
+
+/// Varian lebih gelap dari aksen utama (hover/active).
+const kPrimaryDark = Color(0xFFD94F1A);
+
+/// Latar belakang utama: putih hangat.
+const kBgLight = Color(0xFFFFF8F5);
+
+/// Permukaan card / container: putih bersih.
+const kSurfaceLight = Color(0xFFFFFFFF);
+
+/// Permukaan aksen ringan: krem oranye muda.
+const kSurfaceAccent = Color(0xFFFFF0E8);
+
+/// Teks utama: hampir hitam.
+const kTextPrimary = Color(0xFF1A1A1A);
+
+/// Teks sekunder: abu.
+const kTextMuted = Color(0xFF6B6B6B);
+
+/// Teks tersier / placeholder.
+const kTextFaint = Color(0xFFB0B0B0);
+
+/// Warna border.
+const kBorderColor = Color(0xFFE8E0DB);
 
 /// Halaman beranda yang ditampilkan setelah login berhasil.
 class HomeScreen extends StatelessWidget {
@@ -28,32 +57,57 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: kBgDark,
+      backgroundColor: kBgLight,
       appBar: AppBar(
-        // AppBar dengan warna karbon hangat.
-        backgroundColor: kSurfaceDark,
+        // AppBar dengan warna surface putih bersih — konsisten dengan login.
+        backgroundColor: kSurfaceLight,
+        elevation: 0,
+        shadowColor: Colors.transparent,
+        surfaceTintColor: Colors.transparent,
+        // Garis bawah halus sebagai separator.
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1),
+          child: Container(
+            height: 1,
+            color: kBorderColor,
+          ),
+        ),
         title: Row(
           children: [
-            // Ikon kecil sneaker di samping nama app.
-            const Icon(
-              Icons.directions_run_rounded,
-              color: kPrimaryColor,
-              size: 22,
+            // Logo container oranye kecil di AppBar.
+            Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFFFF8C5A), Color(0xFFFF6B35)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(
+                Icons.sports,
+                color: Colors.white,
+                size: 18,
+              ),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: 10),
             const Text(
               'RakSneaker',
               style: TextStyle(
-                color: Colors.white,
+                color: kTextPrimary,
                 fontWeight: FontWeight.bold,
                 letterSpacing: 0.5,
+                fontSize: 18,
               ),
             ),
           ],
         ),
         actions: [
+          // Tombol logout dengan warna muted — tidak mencolok di light mode.
           IconButton(
-            icon: const Icon(Icons.logout_rounded, color: Colors.white70),
+            icon: const Icon(Icons.logout_rounded, color: kTextMuted),
             tooltip: 'Logout',
             onPressed: () {
               Navigator.pushReplacement(
@@ -63,37 +117,34 @@ class HomeScreen extends StatelessWidget {
             },
           ),
         ],
-        elevation: 0,
       ),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Avatar dengan aksen oranye sneaker.
+            // Avatar dengan latar aksen oranye muda — selaras dengan tema login.
             Container(
               width: 88,
               height: 88,
               decoration: BoxDecoration(
-                // Latar lingkaran oranye transparan.
-                color: kPrimaryColor.withValues(alpha: 0.15),
+                color: kSurfaceAccent,
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: kPrimaryColor.withValues(alpha: 0.3),
+                  color: kPrimaryColor.withValues(alpha: 0.25),
                   width: 1.5,
                 ),
               ),
               child: const Icon(
                 Icons.person_rounded,
-                // Ikon dengan aksen oranye.
                 color: kPrimaryColor,
                 size: 44,
               ),
             ),
             const SizedBox(height: 20),
-            Text(
+            const Text(
               'Selamat datang,',
               style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.6),
+                color: kTextMuted,
                 fontSize: 16,
               ),
             ),
@@ -101,17 +152,57 @@ class HomeScreen extends StatelessWidget {
             Text(
               username,
               style: const TextStyle(
-                color: Colors.white,
+                color: kTextPrimary,
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
               ),
             ),
             const SizedBox(height: 8),
-            Text(
+            const Text(
               'Siap mengelola koleksi sneakermu 👟',
               style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.4),
+                color: kTextFaint,
                 fontSize: 14,
+              ),
+            ),
+            const SizedBox(height: 48),
+            // Kartu dekoratif — permukaan aksen oranye muda.
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: 40),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+              decoration: BoxDecoration(
+                color: kSurfaceAccent,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: kPrimaryColor.withValues(alpha: 0.15),
+                  width: 1,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: kPrimaryColor.withValues(alpha: 0.08),
+                    blurRadius: 16,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(
+                    Icons.check_circle_outline_rounded,
+                    color: kPrimaryColor,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 10),
+                  Text(
+                    'Login berhasil!',
+                    style: TextStyle(
+                      color: kPrimaryDark,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
