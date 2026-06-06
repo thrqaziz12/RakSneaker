@@ -2,65 +2,28 @@
 // login_screen.dart
 // Halaman Login untuk aplikasi RakSneaker.
 //
-// Fitur:
-//   - Input username dan password
-//   - Validasi form sebelum submit
-//   - Autentikasi menggunakan AuthService (Hive + AES)
-//   - Animasi fade & slide saat halaman pertama dibuka
-//   - Toggle visibility password
-//   - Navigasi ke RegisterScreen dan HomeScreen
-//
-// Tema Warna (Light Mode — Sneaker Collection Theme):
-//   - Primary Accent : #FF6B35 (Oranye Sneaker)
-//   - Background     : #FFF8F5 (Putih Hangat)
-//   - Surface        : #FFFFFF (Putih)
-//   - Surface Offset : #FFF0E8 (Krem Oranye Muda)
-//   - Text Utama     : #1A1A1A (Hampir Hitam)
-//   - Text Muted     : #6B6B6B (Abu)
-//   - Error          : #D92B4B (Merah)
+// Perubahan v2:
+//   - Navigasi setelah login sekarang menuju MainScreen (dengan BottomNav)
+//     menggantikan HomeScreen langsung.
 // =============================================================================
 
 import 'package:flutter/material.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 import '../services/auth_service.dart';
 import 'register_screen.dart';
-import 'home_screen.dart';
+import 'main_screen.dart';
 
-// ---------------------------------------------------------------------------
-// Konstanta Warna — Light Sneaker Theme
-// ---------------------------------------------------------------------------
-
-/// Aksen utama: oranye-merah khas kultur sneaker/streetwear.
 const kPrimaryColor = Color(0xFFFF6B35);
-
-/// Varian lebih gelap dari aksen utama (hover/active).
-const kPrimaryDark = Color(0xFFD94F1A);
-
-/// Latar belakang utama: putih hangat.
-const kBgLight = Color(0xFFFFF8F5);
-
-/// Permukaan card / container: putih bersih.
+const kPrimaryDark  = Color(0xFFD94F1A);
+const kBgLight      = Color(0xFFFFF8F5);
 const kSurfaceLight = Color(0xFFFFFFFF);
-
-/// Permukaan aksen ringan: krem oranye muda.
 const kSurfaceAccent = Color(0xFFFFF0E8);
+const kTextPrimary  = Color(0xFF1A1A1A);
+const kTextMuted    = Color(0xFF6B6B6B);
+const kTextFaint    = Color(0xFFB0B0B0);
+const kBorderColor  = Color(0xFFE8E0DB);
+const kErrorColor   = Color(0xFFD92B4B);
 
-/// Teks utama: hampir hitam.
-const kTextPrimary = Color(0xFF1A1A1A);
-
-/// Teks sekunder: abu.
-const kTextMuted = Color(0xFF6B6B6B);
-
-/// Teks tersier / placeholder.
-const kTextFaint = Color(0xFFB0B0B0);
-
-/// Warna border input.
-const kBorderColor = Color(0xFFE8E0DB);
-
-/// Warna teks merah untuk error.
-const kErrorColor = Color(0xFFD92B4B);
-
-/// Halaman login yang menampilkan form username dan password.
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
@@ -70,18 +33,15 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen>
     with SingleTickerProviderStateMixin {
-  // --- Form & Controller ---
   final _formKey = GlobalKey<FormState>();
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
   final _authService = AuthService();
 
-  // --- State ---
   bool _isLoading = false;
   bool _obscurePassword = true;
   String? _errorMessage;
 
-  // --- Animasi ---
   late AnimationController _animController;
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
@@ -132,9 +92,12 @@ class _LoginScreenState extends State<LoginScreen>
     if (!mounted) return;
 
     if (user != null) {
+      // Navigasi ke MainScreen yang memiliki BottomNavigationBar
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (_) => HomeScreen(username: user.username)),
+        MaterialPageRoute(
+          builder: (_) => MainScreen(username: user.username),
+        ),
       );
     } else {
       setState(() {
@@ -167,18 +130,13 @@ class _LoginScreenState extends State<LoginScreen>
                     children: [
                       const SizedBox(height: 60),
 
-                      // -------------------------------------------------------
-                      // Logo & Judul Aplikasi
-                      // -------------------------------------------------------
                       Center(
                         child: Column(
                           children: [
-                            // Lingkaran latar aksen krem supaya logo terlihat jelas.
                             Container(
                               width: 80,
                               height: 80,
                               decoration: BoxDecoration(
-                                // Gradient oranye terang → oranye gelap.
                                 gradient: const LinearGradient(
                                   colors: [
                                     Color(0xFFFF8C5A),
@@ -190,10 +148,7 @@ class _LoginScreenState extends State<LoginScreen>
                                 borderRadius: BorderRadius.circular(22),
                                 boxShadow: [
                                   BoxShadow(
-                                    // Efek bayangan oranye lembut (light mode).
-                                    color: kPrimaryColor.withValues(
-                                      alpha: 0.30,
-                                    ),
+                                    color: kPrimaryColor.withValues(alpha: 0.30),
                                     blurRadius: 20,
                                     spreadRadius: 2,
                                     offset: const Offset(0, 6),
@@ -201,17 +156,12 @@ class _LoginScreenState extends State<LoginScreen>
                                 ],
                               ),
                               child: Icon(
-                                // Menggunakan Icons.sports bawaan Flutter sebagai
-                                // fallback yang selalu render. Ganti dengan
-                                // MdiIcons.shoeSneaker jika font MDI sudah
-                                // terdaftar dengan benar.
                                 MdiIcons.shoeSneaker,
                                 color: Colors.white,
                                 size: 40,
                               ),
                             ),
                             const SizedBox(height: 18),
-                            // Nama aplikasi — teks gelap supaya kontras di bg terang.
                             const Text(
                               'RakSneaker',
                               style: TextStyle(
@@ -222,7 +172,6 @@ class _LoginScreenState extends State<LoginScreen>
                               ),
                             ),
                             const SizedBox(height: 6),
-                            // Tagline.
                             const Text(
                               'Koleksi sneakermu, tertata rapi',
                               style: TextStyle(
@@ -232,7 +181,6 @@ class _LoginScreenState extends State<LoginScreen>
                               ),
                             ),
                             const SizedBox(height: 6),
-                            // Label halaman.
                             const Text(
                               'Masuk ke akun kamu',
                               style: TextStyle(fontSize: 14, color: kTextFaint),
@@ -242,9 +190,6 @@ class _LoginScreenState extends State<LoginScreen>
                       ),
                       const SizedBox(height: 48),
 
-                      // -------------------------------------------------------
-                      // Form Login
-                      // -------------------------------------------------------
                       Form(
                         key: _formKey,
                         child: Column(
@@ -291,9 +236,6 @@ class _LoginScreenState extends State<LoginScreen>
                         ),
                       ),
 
-                      // -------------------------------------------------------
-                      // Pesan Error
-                      // -------------------------------------------------------
                       if (_errorMessage != null) ...[
                         const SizedBox(height: 14),
                         Container(
@@ -330,9 +272,6 @@ class _LoginScreenState extends State<LoginScreen>
 
                       const SizedBox(height: 32),
 
-                      // -------------------------------------------------------
-                      // Tombol Login
-                      // -------------------------------------------------------
                       SizedBox(
                         width: double.infinity,
                         height: 52,
@@ -369,9 +308,6 @@ class _LoginScreenState extends State<LoginScreen>
 
                       const Spacer(),
 
-                      // -------------------------------------------------------
-                      // Link Register
-                      // -------------------------------------------------------
                       Center(
                         child: GestureDetector(
                           onTap: () {
@@ -448,7 +384,6 @@ class _LoginScreenState extends State<LoginScreen>
             prefixIcon: Icon(icon, color: kTextMuted, size: 20),
             suffixIcon: suffixIcon,
             filled: true,
-            // Surface card putih bersih.
             fillColor: kSurfaceLight,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
@@ -458,7 +393,6 @@ class _LoginScreenState extends State<LoginScreen>
               borderRadius: BorderRadius.circular(12),
               borderSide: const BorderSide(color: kBorderColor),
             ),
-            // Border fokus: oranye sneaker.
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: const BorderSide(color: kPrimaryColor, width: 1.5),
