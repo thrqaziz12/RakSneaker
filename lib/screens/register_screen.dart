@@ -1,57 +1,79 @@
 // =============================================================================
-// register_screen.dart — RakSneaker (Light Theme)
+// register_screen.dart
+// Halaman Registrasi untuk aplikasi RakSneaker.
+//
+// Fitur:
+//   - Input username, email, password, dan konfirmasi password
+//   - Validasi form lengkap (format email, panjang password, kecocokan password)
+//   - Registrasi menggunakan AuthService (simpan ke Hive + enkripsi AES)
+//   - Animasi fade & slide saat halaman pertama dibuka
+//   - Dialog sukses sebelum redirect ke halaman Login
+//
+// Tema Warna (Sneaker Collection Theme):
+//   - Primary Accent : #FF6B35 (Oranye Sneaker)
+//   - Background     : #0F0E0C (Hitam Hangat)
+//   - Surface        : #1C1A16 (Abu Karbon Hangat)
+//   - Success        : #4ADE80 (Hijau)
+//   - Error          : #FF4D6D (Merah)
 // =============================================================================
 
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 
-// Konstanta Warna — Light Theme
-const kPrimary      = Color(0xFFFF6B35);
-const kBg           = Color(0xFFFAF9F7);
-const kSurface      = Color(0xFFFFFFFF);
-const kSurfaceOff   = Color(0xFFF5F4F0);
-const kTextDark     = Color(0xFF1A1714);
-const kTextMid      = Color(0xFF6B6560);
-const kTextLight    = Color(0xFFB0ABA6);
-const kBorder       = Color(0xFFE8E5E1);
-const kError        = Color(0xFFD93025);
-const kSuccess      = Color(0xFF2D7A3A);
+// ---------------------------------------------------------------------------
+// Konstanta Warna — Sneaker Collection Theme
+// (sama dengan login_screen.dart agar konsisten)
+// ---------------------------------------------------------------------------
+const kPrimaryColor = Color(0xFFFF6B35);
+const kBgDark = Color(0xFF0F0E0C);
+const kSurfaceDark = Color(0xFF1C1A16);
+const kErrorColor = Color(0xFFFF4D6D);
+const kSuccessColor = Color(0xFF4ADE80);
 
+/// Halaman registrasi untuk membuat akun baru.
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
+
   @override
   State<RegisterScreen> createState() => _RegisterScreenState();
 }
 
 class _RegisterScreenState extends State<RegisterScreen>
     with SingleTickerProviderStateMixin {
-  final _formKey                   = GlobalKey<FormState>();
-  final _usernameController        = TextEditingController();
-  final _emailController           = TextEditingController();
-  final _passwordController        = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
+  final _usernameController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
-  final _authService               = AuthService();
+  final _authService = AuthService();
 
-  bool    _isLoading       = false;
-  bool    _obscurePassword = true;
-  bool    _obscureConfirm  = true;
+  bool _isLoading = false;
+  bool _obscurePassword = true;
+  bool _obscureConfirm = true;
   String? _errorMessage;
 
   late AnimationController _animController;
-  late Animation<double>   _fadeAnimation;
-  late Animation<Offset>   _slideAnimation;
+  late Animation<double> _fadeAnimation;
+  late Animation<Offset> _slideAnimation;
 
   @override
   void initState() {
     super.initState();
     _animController = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 700));
-    _fadeAnimation  = CurvedAnimation(
-        parent: _animController, curve: Curves.easeOut);
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    );
+    _fadeAnimation = CurvedAnimation(
+      parent: _animController,
+      curve: Curves.easeOut,
+    );
     _slideAnimation = Tween<Offset>(
-            begin: const Offset(0, 0.25), end: Offset.zero)
-        .animate(CurvedAnimation(
-            parent: _animController, curve: Curves.easeOutCubic));
+      begin: const Offset(0, 0.3),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(
+      parent: _animController,
+      curve: Curves.easeOutCubic,
+    ));
     _animController.forward();
   }
 
@@ -67,41 +89,50 @@ class _RegisterScreenState extends State<RegisterScreen>
 
   Future<void> _handleRegister() async {
     if (!_formKey.currentState!.validate()) return;
-    setState(() { _isLoading = true; _errorMessage = null; });
+
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
     final error = await _authService.register(
       username: _usernameController.text,
-      email:    _emailController.text,
+      email: _emailController.text,
       password: _passwordController.text,
     );
+
     setState(() => _isLoading = false);
+
     if (!mounted) return;
+
     if (error == null) {
       await showDialog(
         context: context,
         barrierDismissible: false,
         builder: (_) => AlertDialog(
-          backgroundColor: kSurface,
+          // Dialog surface menggunakan warna karbon hangat.
+          backgroundColor: kSurfaceDark,
           shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16)),
           title: const Row(
             children: [
               Icon(Icons.check_circle_outline_rounded,
-                  color: kSuccess, size: 24),
+                  color: kSuccessColor, size: 24),
               SizedBox(width: 8),
               Text('Registrasi Berhasil',
-                  style: TextStyle(color: kTextDark, fontSize: 18)),
+                  style: TextStyle(color: Colors.white, fontSize: 18)),
             ],
           ),
           content: const Text(
             'Akun kamu berhasil dibuat. Silakan login untuk mulai mengelola koleksi sneakermu!',
-            style: TextStyle(color: kTextMid, fontSize: 14),
+            style: TextStyle(color: Colors.white70, fontSize: 14),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
               child: const Text('OK',
-                  style: TextStyle(color: kPrimary, fontSize: 15,
-                      fontWeight: FontWeight.w600)),
+                  // Tombol OK menggunakan warna aksen oranye.
+                  style: TextStyle(color: kPrimaryColor, fontSize: 15)),
             ),
           ],
         ),
@@ -115,7 +146,7 @@ class _RegisterScreenState extends State<RegisterScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: kBg,
+      backgroundColor: kBgDark,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 28.0),
@@ -128,40 +159,48 @@ class _RegisterScreenState extends State<RegisterScreen>
                 children: [
                   const SizedBox(height: 20),
 
-                  // ── Tombol Back ──────────────────────────────────────────
+                  // -------------------------------------------------------
+                  // Tombol Back
+                  // -------------------------------------------------------
                   GestureDetector(
                     onTap: () => Navigator.pop(context),
                     child: Container(
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        color: kSurface,
+                        color: kSurfaceDark,
                         borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: kBorder),
                       ),
                       child: const Icon(Icons.arrow_back_ios_new_rounded,
-                          color: kTextMid, size: 18),
+                          color: Colors.white70, size: 18),
                     ),
                   ),
-                  const SizedBox(height: 28),
+                  const SizedBox(height: 32),
 
-                  // ── Judul ────────────────────────────────────────────────
+                  // -------------------------------------------------------
+                  // Judul & Sub-judul
+                  // -------------------------------------------------------
                   const Text(
                     'Buat Akun Baru',
                     style: TextStyle(
                       fontSize: 26,
                       fontWeight: FontWeight.bold,
-                      color: kTextDark,
-                      letterSpacing: 0.3,
+                      color: Colors.white,
+                      letterSpacing: 0.5,
                     ),
                   ),
                   const SizedBox(height: 6),
-                  const Text(
+                  Text(
                     'Daftarkan dirimu dan mulai kelola koleksi sneakermu',
-                    style: TextStyle(fontSize: 14, color: kTextMid),
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.white.withValues(alpha: 0.5),
+                    ),
                   ),
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 36),
 
-                  // ── Form ─────────────────────────────────────────────────
+                  // -------------------------------------------------------
+                  // Form Registrasi
+                  // -------------------------------------------------------
                   Form(
                     key: _formKey,
                     child: Column(
@@ -210,7 +249,8 @@ class _RegisterScreenState extends State<RegisterScreen>
                               _obscurePassword
                                   ? Icons.visibility_off_outlined
                                   : Icons.visibility_outlined,
-                              color: kTextLight, size: 20,
+                              color: Colors.white38,
+                              size: 20,
                             ),
                             onPressed: () => setState(
                                 () => _obscurePassword = !_obscurePassword),
@@ -237,7 +277,8 @@ class _RegisterScreenState extends State<RegisterScreen>
                               _obscureConfirm
                                   ? Icons.visibility_off_outlined
                                   : Icons.visibility_outlined,
-                              color: kTextLight, size: 20,
+                              color: Colors.white38,
+                              size: 20,
                             ),
                             onPressed: () => setState(
                                 () => _obscureConfirm = !_obscureConfirm),
@@ -256,86 +297,110 @@ class _RegisterScreenState extends State<RegisterScreen>
                     ),
                   ),
 
-                  // ── Error ─────────────────────────────────────────────────
-                  if (_errorMessage != null) ...[  
-                    const SizedBox(height: 16),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 14, vertical: 10),
-                      decoration: BoxDecoration(
-                        color: kError.withValues(alpha: 0.08),
-                        borderRadius: BorderRadius.circular(10),
-                        border:
-                            Border.all(color: kError.withValues(alpha: 0.25)),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.error_outline,
-                              color: kError, size: 18),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(_errorMessage!,
-                                style: const TextStyle(
-                                    color: kError, fontSize: 13)),
+                  // -------------------------------------------------------
+                  // Pesan Error
+                  // -------------------------------------------------------
+                  if (_errorMessage != null) ...
+                    [
+                      const SizedBox(height: 16),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 14, vertical: 10),
+                        decoration: BoxDecoration(
+                          color: kErrorColor.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                            color: kErrorColor.withValues(alpha: 0.3),
                           ),
-                        ],
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.error_outline,
+                                color: kErrorColor, size: 18),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                _errorMessage!,
+                                style: const TextStyle(
+                                  color: kErrorColor,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
 
-                  const SizedBox(height: 28),
+                  const SizedBox(height: 32),
 
-                  // ── Tombol Daftar ─────────────────────────────────────────
+                  // -------------------------------------------------------
+                  // Tombol Daftar
+                  // -------------------------------------------------------
                   SizedBox(
                     width: double.infinity,
                     height: 52,
                     child: ElevatedButton(
                       onPressed: _isLoading ? null : _handleRegister,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: kPrimary,
+                        // Tombol oranye sneaker.
+                        backgroundColor: kPrimaryColor,
                         foregroundColor: Colors.white,
                         shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14)),
+                          borderRadius: BorderRadius.circular(14),
+                        ),
                         elevation: 0,
                       ),
                       child: _isLoading
                           ? const SizedBox(
-                              width: 22, height: 22,
+                              width: 22,
+                              height: 22,
                               child: CircularProgressIndicator(
-                                  strokeWidth: 2.5, color: Colors.white))
-                          : const Text('Daftar',
+                                strokeWidth: 2.5,
+                                color: Colors.white,
+                              ),
+                            )
+                          : const Text(
+                              'Daftar',
                               style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                  letterSpacing: 0.5)),
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
                     ),
                   ),
 
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 24),
 
-                  // ── Link Login ────────────────────────────────────────────
+                  // -------------------------------------------------------
+                  // Link kembali ke Login
+                  // -------------------------------------------------------
                   Center(
                     child: GestureDetector(
                       onTap: () => Navigator.pop(context),
-                      child: const Padding(
-                        padding: EdgeInsets.only(bottom: 24),
-                        child: RichText(
-                          text: TextSpan(
-                            text: 'Sudah punya akun? ',
-                            style: TextStyle(color: kTextMid, fontSize: 14),
-                            children: [
-                              TextSpan(
-                                text: 'Masuk di sini',
-                                style: TextStyle(
-                                    color: kPrimary,
-                                    fontWeight: FontWeight.w600),
-                              ),
-                            ],
+                      child: RichText(
+                        text: TextSpan(
+                          text: 'Sudah punya akun? ',
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.5),
+                            fontSize: 14,
                           ),
+                          children: const [
+                            TextSpan(
+                              text: 'Masuk di sini',
+                              style: TextStyle(
+                                // Link oranye.
+                                color: kPrimaryColor,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
                   ),
+                  const SizedBox(height: 32),
                 ],
               ),
             ),
@@ -358,46 +423,49 @@ class _RegisterScreenState extends State<RegisterScreen>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label,
-            style: const TextStyle(
-                color: kTextDark,
-                fontSize: 13,
-                fontWeight: FontWeight.w600)),
+        Text(
+          label,
+          style: const TextStyle(
+            color: Colors.white70,
+            fontSize: 13,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
         const SizedBox(height: 8),
         TextFormField(
           controller: controller,
           obscureText: obscureText,
           keyboardType: keyboardType,
           validator: validator,
-          style: const TextStyle(color: kTextDark, fontSize: 15),
+          style: const TextStyle(color: Colors.white),
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: const TextStyle(color: kTextLight),
-            prefixIcon: Icon(icon, color: kTextLight, size: 20),
+            hintStyle: TextStyle(
+              color: Colors.white.withValues(alpha: 0.25),
+            ),
+            prefixIcon: Icon(icon, color: Colors.white38, size: 20),
             suffixIcon: suffixIcon,
             filled: true,
-            fillColor: kSurface,
+            // Surface card hangat.
+            fillColor: kSurfaceDark,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: kBorder),
+              borderSide: BorderSide.none,
             ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: kBorder),
-            ),
+            // Border fokus oranye sneaker.
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: kPrimary, width: 1.5),
+              borderSide: const BorderSide(color: kPrimaryColor, width: 1.5),
             ),
             errorBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: kError, width: 1),
+              borderSide: const BorderSide(color: kErrorColor, width: 1),
             ),
             focusedErrorBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: kError, width: 1.5),
+              borderSide: const BorderSide(color: kErrorColor, width: 1.5),
             ),
-            errorStyle: const TextStyle(color: kError),
+            errorStyle: const TextStyle(color: kErrorColor),
             contentPadding:
                 const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           ),

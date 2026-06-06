@@ -1,66 +1,59 @@
 // =============================================================================
-// home_screen.dart — RakSneaker (Light Theme)
+// home_screen.dart
+// Halaman utama setelah user berhasil login ke aplikasi RakSneaker.
+//
+// Fitur:
+//   - Menampilkan sapaan dengan nama username yang sedang login
+//   - Tombol logout untuk kembali ke halaman LoginScreen
+//
+// Tema Warna (Sneaker Collection Theme):
+//   - Primary Accent : #FF6B35 (Oranye Sneaker)
+//   - Background     : #0F0E0C (Hitam Hangat)
+//   - Surface/AppBar : #1C1A16 (Abu Karbon Hangat)
 // =============================================================================
 
 import 'package:flutter/material.dart';
 import 'login_screen.dart';
 
-const kPrimary    = Color(0xFFFF6B35);
-const kBg         = Color(0xFFFAF9F7);
-const kSurface    = Color(0xFFFFFFFF);
-const kSurfaceOff = Color(0xFFF5F4F0);
-const kTextDark   = Color(0xFF1A1714);
-const kTextMid    = Color(0xFF6B6560);
-const kBorder     = Color(0xFFE8E5E1);
+const kPrimaryColor = Color(0xFFFF6B35);
+const kBgDark = Color(0xFF0F0E0C);
+const kSurfaceDark = Color(0xFF1C1A16);
 
+/// Halaman beranda yang ditampilkan setelah login berhasil.
 class HomeScreen extends StatelessWidget {
   final String username;
+
   const HomeScreen({super.key, required this.username});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: kBg,
+      backgroundColor: kBgDark,
       appBar: AppBar(
-        backgroundColor: kSurface,
-        elevation: 0,
-        surfaceTintColor: Colors.transparent,
-        // Garis bawah tipis sebagai pemisah AppBar
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(1),
-          child: Container(color: kBorder, height: 1),
-        ),
+        // AppBar dengan warna karbon hangat.
+        backgroundColor: kSurfaceDark,
         title: Row(
           children: [
-            // Ikon oranye kecil di samping nama app
-            Container(
-              width: 30,
-              height: 30,
-              decoration: BoxDecoration(
-                color: kPrimary.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Icon(
-                Icons.directions_run_rounded,
-                color: kPrimary,
-                size: 18,
-              ),
+            // Ikon kecil sneaker di samping nama app.
+            const Icon(
+              Icons.directions_run_rounded,
+              color: kPrimaryColor,
+              size: 22,
             ),
-            const SizedBox(width: 10),
+            const SizedBox(width: 8),
             const Text(
               'RakSneaker',
               style: TextStyle(
-                color: kTextDark,
+                color: Colors.white,
                 fontWeight: FontWeight.bold,
-                fontSize: 18,
-                letterSpacing: 0.3,
+                letterSpacing: 0.5,
               ),
             ),
           ],
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.logout_rounded, color: kTextMid),
+            icon: const Icon(Icons.logout_rounded, color: Colors.white70),
             tooltip: 'Logout',
             onPressed: () {
               Navigator.pushReplacement(
@@ -70,59 +63,55 @@ class HomeScreen extends StatelessWidget {
             },
           ),
         ],
+        elevation: 0,
       ),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Avatar dengan ring oranye
+            // Avatar dengan aksen oranye sneaker.
             Container(
-              width: 92,
-              height: 92,
+              width: 88,
+              height: 88,
               decoration: BoxDecoration(
-                color: kPrimary.withValues(alpha: 0.10),
+                // Latar lingkaran oranye transparan.
+                color: kPrimaryColor.withValues(alpha: 0.15),
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: kPrimary.withValues(alpha: 0.30),
-                  width: 2,
+                  color: kPrimaryColor.withValues(alpha: 0.3),
+                  width: 1.5,
                 ),
               ),
               child: const Icon(
                 Icons.person_rounded,
-                color: kPrimary,
-                size: 46,
+                // Ikon dengan aksen oranye.
+                color: kPrimaryColor,
+                size: 44,
               ),
             ),
             const SizedBox(height: 20),
-            const Text(
+            Text(
               'Selamat datang,',
-              style: TextStyle(color: kTextMid, fontSize: 15),
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.6),
+                fontSize: 16,
+              ),
             ),
             const SizedBox(height: 6),
             Text(
               username,
               style: const TextStyle(
-                color: kTextDark,
+                color: Colors.white,
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
               ),
             ),
-            const SizedBox(height: 10),
-            Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              decoration: BoxDecoration(
-                color: kPrimary.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(
-                    color: kPrimary.withValues(alpha: 0.20)),
-              ),
-              child: const Text(
-                '👟  Siap mengelola koleksi sneakermu',
-                style: TextStyle(
-                    color: kPrimary,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500),
+            const SizedBox(height: 8),
+            Text(
+              'Siap mengelola koleksi sneakermu 👟',
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.4),
+                fontSize: 14,
               ),
             ),
           ],
