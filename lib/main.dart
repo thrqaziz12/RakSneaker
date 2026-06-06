@@ -21,12 +21,18 @@ class RakSneakerApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
-          // Warna seed: Oranye Sneaker — energik, khas kultur sneaker
           seedColor: const Color(0xFFFF6B35),
-          brightness: Brightness.dark,
+          brightness: Brightness.light,
         ),
         useMaterial3: true,
         fontFamily: 'sans-serif',
+        scaffoldBackgroundColor: const Color(0xFFFAF9F7),
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Colors.white,
+          foregroundColor: Color(0xFF1A1714),
+          elevation: 0,
+          surfaceTintColor: Colors.transparent,
+        ),
       ),
       home: const LoginScreen(),
     );

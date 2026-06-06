@@ -1,20 +1,5 @@
 // =============================================================================
-// login_screen.dart
-// Halaman Login untuk aplikasi RakSneaker.
-//
-// Fitur:
-//   - Input username dan password
-//   - Validasi form sebelum submit
-//   - Autentikasi menggunakan AuthService (Hive + AES)
-//   - Animasi fade & slide saat halaman pertama dibuka
-//   - Toggle visibility password
-//   - Navigasi ke RegisterScreen dan HomeScreen
-//
-// Tema Warna (Sneaker Collection Theme):
-//   - Primary Accent : #FF6B35 (Oranye Sneaker)
-//   - Background     : #0F0E0C (Hitam Hangat)
-//   - Surface        : #1C1A16 (Abu Karbon Hangat)
-//   - Error          : #FF4D6D (Merah)
+// login_screen.dart — RakSneaker (Light Theme)
 // =============================================================================
 
 import 'package:flutter/material.dart';
@@ -23,68 +8,48 @@ import 'register_screen.dart';
 import 'home_screen.dart';
 
 // ---------------------------------------------------------------------------
-// Konstanta Warna — Sneaker Collection Theme
+// Konstanta Warna — Light Theme / Sneaker Collection
 // ---------------------------------------------------------------------------
+const kPrimary      = Color(0xFFFF6B35); // Oranye sneaker (aksen utama)
+const kPrimaryDark  = Color(0xFFD94F1A); // Hover / gradient bawah
+const kBg           = Color(0xFFFAF9F7); // Background putih hangat
+const kSurface      = Color(0xFFFFFFFF); // Card / input putih
+const kSurfaceOff   = Color(0xFFF5F4F0); // Surface sedikit abu
+const kTextDark     = Color(0xFF1A1714); // Teks utama
+const kTextMid      = Color(0xFF6B6560); // Teks sekunder
+const kTextLight    = Color(0xFFB0ABA6); // Placeholder
+const kBorder       = Color(0xFFE8E5E1); // Border input
+const kError        = Color(0xFFD93025); // Error merah
 
-/// Aksen utama: oranye-merah khas kultur sneaker/streetwear.
-const kPrimaryColor = Color(0xFFFF6B35);
-
-/// Varian lebih gelap dari aksen utama (hover/active).
-const kPrimaryDark = Color(0xFFD94F1A);
-
-/// Warna latar paling gelap (background utama aplikasi).
-const kBgDark = Color(0xFF0F0E0C);
-
-/// Warna permukaan card / container (satu level lebih terang dari bg).
-const kSurfaceDark = Color(0xFF1C1A16);
-
-/// Warna teks merah untuk error.
-const kErrorColor = Color(0xFFFF4D6D);
-
-/// Halaman login yang menampilkan form username dan password.
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
-
   @override
   State<LoginScreen> createState() => _LoginScreenState();
 }
 
 class _LoginScreenState extends State<LoginScreen>
     with SingleTickerProviderStateMixin {
-  // --- Form & Controller ---
-  final _formKey = GlobalKey<FormState>();
-  final _usernameController = TextEditingController();
-  final _passwordController = TextEditingController();
-  final _authService = AuthService();
+  final _formKey             = GlobalKey<FormState>();
+  final _usernameController  = TextEditingController();
+  final _passwordController  = TextEditingController();
+  final _authService         = AuthService();
 
-  // --- State ---
-  bool _isLoading = false;
-  bool _obscurePassword = true;
+  bool    _isLoading       = false;
+  bool    _obscurePassword = true;
   String? _errorMessage;
 
-  // --- Animasi ---
   late AnimationController _animController;
-  late Animation<double> _fadeAnimation;
-  late Animation<Offset> _slideAnimation;
+  late Animation<double>   _fadeAnimation;
+  late Animation<Offset>   _slideAnimation;
 
   @override
   void initState() {
     super.initState();
     _animController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 800),
-    );
-    _fadeAnimation = CurvedAnimation(
-      parent: _animController,
-      curve: Curves.easeOut,
-    );
-    _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, 0.3),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(
-      parent: _animController,
-      curve: Curves.easeOutCubic,
-    ));
+      vsync: this, duration: const Duration(milliseconds: 700));
+    _fadeAnimation  = CurvedAnimation(parent: _animController, curve: Curves.easeOut);
+    _slideAnimation = Tween<Offset>(begin: const Offset(0, 0.25), end: Offset.zero)
+        .animate(CurvedAnimation(parent: _animController, curve: Curves.easeOutCubic));
     _animController.forward();
   }
 
@@ -98,49 +63,35 @@ class _LoginScreenState extends State<LoginScreen>
 
   Future<void> _handleLogin() async {
     if (!_formKey.currentState!.validate()) return;
-
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
-
+    setState(() { _isLoading = true; _errorMessage = null; });
     await Future.delayed(const Duration(milliseconds: 600));
-
     final user = _authService.login(
       username: _usernameController.text,
       password: _passwordController.text,
     );
-
     setState(() => _isLoading = false);
-
     if (!mounted) return;
-
     if (user != null) {
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(
-          builder: (_) => HomeScreen(username: user.username),
-        ),
+        MaterialPageRoute(builder: (_) => HomeScreen(username: user.username)),
       );
     } else {
-      setState(() {
-        _errorMessage = 'Username atau password salah';
-      });
+      setState(() => _errorMessage = 'Username atau password salah');
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
-
     return Scaffold(
-      backgroundColor: kBgDark,
+      backgroundColor: kBg,
       body: SafeArea(
         child: SingleChildScrollView(
           child: SizedBox(
-            height: size.height -
-                MediaQuery.of(context).padding.top -
-                MediaQuery.of(context).padding.bottom,
+            height: size.height
+                - MediaQuery.of(context).padding.top
+                - MediaQuery.of(context).padding.bottom,
             child: FadeTransition(
               opacity: _fadeAnimation,
               child: SlideTransition(
@@ -150,83 +101,64 @@ class _LoginScreenState extends State<LoginScreen>
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const SizedBox(height: 60),
+                      const SizedBox(height: 56),
 
-                      // -------------------------------------------------------
-                      // Logo & Judul Aplikasi
-                      // -------------------------------------------------------
+                      // ── Logo & Judul ──────────────────────────────────────
                       Center(
                         child: Column(
                           children: [
-                            // Icon sepatu sneaker dengan efek glow oranye.
+                            // Logo container dengan SVG sepatu
                             Container(
-                              width: 80,
-                              height: 80,
+                              width: 88,
+                              height: 88,
                               decoration: BoxDecoration(
-                                // Gradient oranye → merah-oranye khas sol sneaker.
                                 gradient: const LinearGradient(
-                                  colors: [
-                                    Color(0xFFFF6B35),
-                                    Color(0xFFD94F1A),
-                                  ],
+                                  colors: [Color(0xFFFF6B35), Color(0xFFD94F1A)],
                                   begin: Alignment.topLeft,
                                   end: Alignment.bottomRight,
                                 ),
-                                borderRadius: BorderRadius.circular(22),
+                                borderRadius: BorderRadius.circular(24),
                                 boxShadow: [
                                   BoxShadow(
-                                    // Efek glow oranye.
-                                    color: kPrimaryColor.withValues(alpha: 0.45),
-                                    blurRadius: 28,
-                                    spreadRadius: 4,
+                                    color: kPrimary.withValues(alpha: 0.35),
+                                    blurRadius: 24,
+                                    offset: const Offset(0, 8),
                                   ),
                                 ],
                               ),
-                              child: const Icon(
-                                // Ikon sneaker/sepatu olahraga.
-                                Icons.directions_run_rounded,
-                                color: Colors.white,
-                                size: 40,
-                              ),
+                              // SVG sepatu sneaker (inline CustomPaint)
+                              child: const _SneakerLogoIcon(),
                             ),
-                            const SizedBox(height: 18),
-                            // Nama aplikasi.
+                            const SizedBox(height: 20),
                             const Text(
                               'RakSneaker',
                               style: TextStyle(
                                 fontSize: 30,
                                 fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                                letterSpacing: 1.5,
+                                color: kTextDark,
+                                letterSpacing: 1.2,
                               ),
                             ),
-                            const SizedBox(height: 6),
-                            // Tagline on-brand.
-                            Text(
+                            const SizedBox(height: 4),
+                            const Text(
                               'Koleksi sneakermu, tertata rapi',
                               style: TextStyle(
                                 fontSize: 13,
-                                color: Colors.white.withValues(alpha: 0.5),
-                                letterSpacing: 0.3,
+                                color: kTextMid,
+                                letterSpacing: 0.2,
                               ),
                             ),
-                            const SizedBox(height: 6),
-                            // Label halaman.
-                            Text(
-                              'Masuk ke akun kamu',
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: Colors.white.withValues(alpha: 0.4),
-                              ),
+                            const SizedBox(height: 8),
+                            const Text(
+                              'Masuk ke akunmu',
+                              style: TextStyle(fontSize: 14, color: kTextLight),
                             ),
                           ],
                         ),
                       ),
-                      const SizedBox(height: 48),
+                      const SizedBox(height: 44),
 
-                      // -------------------------------------------------------
-                      // Form Login
-                      // -------------------------------------------------------
+                      // ── Form ─────────────────────────────────────────────
                       Form(
                         key: _formKey,
                         child: Column(
@@ -255,7 +187,7 @@ class _LoginScreenState extends State<LoginScreen>
                                   _obscurePassword
                                       ? Icons.visibility_off_outlined
                                       : Icons.visibility_outlined,
-                                  color: Colors.white38,
+                                  color: kTextLight,
                                   size: 20,
                                 ),
                                 onPressed: () => setState(
@@ -272,109 +204,82 @@ class _LoginScreenState extends State<LoginScreen>
                         ),
                       ),
 
-                      // -------------------------------------------------------
-                      // Pesan Error
-                      // -------------------------------------------------------
-                      if (_errorMessage != null) ...
-                        [
-                          const SizedBox(height: 14),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 14, vertical: 10),
-                            decoration: BoxDecoration(
-                              color: kErrorColor.withValues(alpha: 0.12),
-                              borderRadius: BorderRadius.circular(10),
-                              border: Border.all(
-                                color: kErrorColor.withValues(alpha: 0.3),
-                              ),
-                            ),
-                            child: Row(
-                              children: [
-                                const Icon(Icons.error_outline,
-                                    color: kErrorColor, size: 18),
-                                const SizedBox(width: 8),
-                                Text(
-                                  _errorMessage!,
-                                  style: const TextStyle(
-                                    color: kErrorColor,
-                                    fontSize: 13,
-                                  ),
-                                ),
-                              ],
-                            ),
+                      // ── Error ─────────────────────────────────────────────
+                      if (_errorMessage != null) ...[  
+                        const SizedBox(height: 14),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 10),
+                          decoration: BoxDecoration(
+                            color: kError.withValues(alpha: 0.08),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                                color: kError.withValues(alpha: 0.25)),
                           ),
-                        ],
+                          child: Row(
+                            children: [
+                              const Icon(Icons.error_outline,
+                                  color: kError, size: 18),
+                              const SizedBox(width: 8),
+                              Text(_errorMessage!,
+                                  style: const TextStyle(
+                                      color: kError, fontSize: 13)),
+                            ],
+                          ),
+                        ),
+                      ],
 
-                      const SizedBox(height: 32),
+                      const SizedBox(height: 28),
 
-                      // -------------------------------------------------------
-                      // Tombol Login
-                      // -------------------------------------------------------
+                      // ── Tombol Login ──────────────────────────────────────
                       SizedBox(
                         width: double.infinity,
                         height: 52,
                         child: ElevatedButton(
                           onPressed: _isLoading ? null : _handleLogin,
                           style: ElevatedButton.styleFrom(
-                            // Tombol oranye sneaker.
-                            backgroundColor: kPrimaryColor,
+                            backgroundColor: kPrimary,
                             foregroundColor: Colors.white,
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14),
-                            ),
+                                borderRadius: BorderRadius.circular(14)),
                             elevation: 0,
                           ),
                           child: _isLoading
                               ? const SizedBox(
-                                  width: 22,
-                                  height: 22,
+                                  width: 22, height: 22,
                                   child: CircularProgressIndicator(
-                                    strokeWidth: 2.5,
-                                    color: Colors.white,
-                                  ),
-                                )
-                              : const Text(
-                                  'Masuk',
+                                      strokeWidth: 2.5, color: Colors.white))
+                              : const Text('Masuk',
                                   style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
-                                    letterSpacing: 0.5,
-                                  ),
-                                ),
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                      letterSpacing: 0.5)),
                         ),
                       ),
 
                       const Spacer(),
 
-                      // -------------------------------------------------------
-                      // Link Register
-                      // -------------------------------------------------------
+                      // ── Link Register ─────────────────────────────────────
                       Center(
                         child: GestureDetector(
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (_) => const RegisterScreen()),
-                            );
-                          },
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (_) => const RegisterScreen()),
+                          ),
                           child: Padding(
                             padding: const EdgeInsets.only(bottom: 24),
                             child: RichText(
-                              text: TextSpan(
+                              text: const TextSpan(
                                 text: 'Belum punya akun? ',
                                 style: TextStyle(
-                                  color: Colors.white.withValues(alpha: 0.5),
-                                  fontSize: 14,
-                                ),
-                                children: const [
+                                    color: kTextMid, fontSize: 14),
+                                children: [
                                   TextSpan(
                                     text: 'Daftar sekarang',
                                     style: TextStyle(
-                                      // Link oranye.
-                                      color: kPrimaryColor,
-                                      fontWeight: FontWeight.w600,
-                                    ),
+                                        color: kPrimary,
+                                        fontWeight: FontWeight.w600),
                                   ),
                                 ],
                               ),
@@ -405,48 +310,45 @@ class _LoginScreenState extends State<LoginScreen>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: const TextStyle(
-            color: Colors.white70,
-            fontSize: 13,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
+        Text(label,
+            style: const TextStyle(
+                color: kTextDark,
+                fontSize: 13,
+                fontWeight: FontWeight.w600)),
         const SizedBox(height: 8),
         TextFormField(
           controller: controller,
           obscureText: obscureText,
           validator: validator,
-          style: const TextStyle(color: Colors.white),
+          style: const TextStyle(color: kTextDark, fontSize: 15),
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: TextStyle(
-              color: Colors.white.withValues(alpha: 0.25),
-            ),
-            prefixIcon: Icon(icon, color: Colors.white38, size: 20),
+            hintStyle: const TextStyle(color: kTextLight),
+            prefixIcon: Icon(icon, color: kTextLight, size: 20),
             suffixIcon: suffixIcon,
             filled: true,
-            // Surface card hangat.
-            fillColor: kSurfaceDark,
+            fillColor: kSurface,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide.none,
+              borderSide: const BorderSide(color: kBorder),
             ),
-            // Border fokus: oranye sneaker.
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: kBorder),
+            ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: kPrimaryColor, width: 1.5),
+              borderSide: const BorderSide(color: kPrimary, width: 1.5),
             ),
             errorBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: kErrorColor, width: 1),
+              borderSide: const BorderSide(color: kError, width: 1),
             ),
             focusedErrorBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: kErrorColor, width: 1.5),
+              borderSide: const BorderSide(color: kError, width: 1.5),
             ),
-            errorStyle: const TextStyle(color: kErrorColor),
+            errorStyle: const TextStyle(color: kError),
             contentPadding:
                 const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           ),
@@ -454,4 +356,100 @@ class _LoginScreenState extends State<LoginScreen>
       ],
     );
   }
+}
+
+// =============================================================================
+// _SneakerLogoIcon — CustomPainter logo sepatu sneaker
+// =============================================================================
+class _SneakerLogoIcon extends StatelessWidget {
+  const _SneakerLogoIcon();
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomPaint(
+      size: const Size(88, 88),
+      painter: _SneakerPainter(),
+    );
+  }
+}
+
+class _SneakerPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width;
+    final h = size.height;
+    final paint = Paint()
+      ..color = Colors.white
+      ..style = PaintingStyle.fill;
+
+    // ── Sol bawah (outsole) ─────────────────────────────────────────────────
+    final solePath = Path()
+      ..moveTo(w * 0.12, h * 0.70)
+      ..quadraticBezierTo(w * 0.10, h * 0.82, w * 0.22, h * 0.84)
+      ..lineTo(w * 0.78, h * 0.84)
+      ..quadraticBezierTo(w * 0.92, h * 0.83, w * 0.88, h * 0.72)
+      ..lineTo(w * 0.12, h * 0.70)
+      ..close();
+    canvas.drawPath(solePath, paint);
+
+    // ── Upper (badan sepatu) ───────────────────────────────────────────────
+    final upperPath = Path()
+      ..moveTo(w * 0.18, h * 0.70)
+      ..quadraticBezierTo(w * 0.16, h * 0.52, w * 0.30, h * 0.44)
+      ..quadraticBezierTo(w * 0.42, h * 0.36, w * 0.58, h * 0.38)
+      ..lineTo(w * 0.75, h * 0.44)
+      ..quadraticBezierTo(w * 0.86, h * 0.50, w * 0.84, h * 0.60)
+      ..lineTo(w * 0.86, h * 0.70)
+      ..lineTo(w * 0.18, h * 0.70)
+      ..close();
+    canvas.drawPath(upperPath, paint);
+
+    // ── Lidah sepatu (tongue) ─────────────────────────────────────────────
+    final tonguePath = Path()
+      ..moveTo(w * 0.33, h * 0.44)
+      ..quadraticBezierTo(w * 0.31, h * 0.34, w * 0.36, h * 0.26)
+      ..lineTo(w * 0.52, h * 0.26)
+      ..quadraticBezierTo(w * 0.56, h * 0.34, w * 0.54, h * 0.44)
+      ..close();
+    // Warna berbeda: putih lebih transparan untuk efek kedalaman
+    canvas.drawPath(tonguePath,
+        paint..color = Colors.white.withValues(alpha: 0.75));
+
+    // ── Tali sepatu (laces) ───────────────────────────────────────────────
+    final lacePaint = Paint()
+      ..color = Colors.white.withValues(alpha: 0.90)
+      ..strokeWidth = 2.2
+      ..strokeCap = StrokeCap.round
+      ..style = PaintingStyle.stroke;
+
+    // 3 pasang tali
+    for (int i = 0; i < 3; i++) {
+      final y = h * (0.30 + i * 0.055);
+      canvas.drawLine(
+        Offset(w * 0.345, y),
+        Offset(w * 0.505, y),
+        lacePaint,
+      );
+    }
+
+    // ── Stripe dekoratif di sisi upper ────────────────────────────────────
+    final stripePaint = Paint()
+      ..color = Colors.white.withValues(alpha: 0.45)
+      ..strokeWidth = 3.5
+      ..strokeCap = StrokeCap.round
+      ..style = PaintingStyle.stroke;
+
+    final stripe1 = Path()
+      ..moveTo(w * 0.60, h * 0.48)
+      ..quadraticBezierTo(w * 0.68, h * 0.52, w * 0.72, h * 0.62);
+    canvas.drawPath(stripe1, stripePaint);
+
+    final stripe2 = Path()
+      ..moveTo(w * 0.66, h * 0.50)
+      ..quadraticBezierTo(w * 0.74, h * 0.55, w * 0.77, h * 0.64);
+    canvas.drawPath(stripe2, stripePaint);
+  }
+
+  @override
+  bool shouldRepaint(_SneakerPainter oldDelegate) => false;
 }
