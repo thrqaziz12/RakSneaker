@@ -102,13 +102,17 @@ class _LoginScreenState extends State<LoginScreen>
       password: _passwordController.text,
     );
 
-    setState(() => _isLoading = false);
-
+    // Guard: pastikan widget masih terpasang setelah await
     if (!mounted) return;
+
+    setState(() => _isLoading = false);
 
     if (user != null) {
       // Simpan username agar bisa digunakan untuk login biometrik berikutnya
       await _authService.saveLastLoggedInUsername(user.username);
+
+      // Guard setelah await kedua sebelum menggunakan context
+      if (!mounted) return;
 
       Navigator.pushReplacement(
         context,
