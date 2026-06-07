@@ -4,6 +4,14 @@
     <uses-permission android:name="android.permission.USE_BIOMETRIC"/>
     <uses-permission android:name="android.permission.USE_FINGERPRINT"/>
 
+    <!-- Permission untuk notifikasi (Bug #1) -->
+    <!-- POST_NOTIFICATIONS wajib di Android 13+ (API 33+) -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    <!-- Agar notifikasi terjadwal tetap hidup setelah reboot -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
+    <!-- USE_EXACT_ALARM: izin exact alarm API 33+, tidak perlu user approval dialog -->
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM"/>
+
     <application
         android:label="raksneaker"
         android:name="${applicationName}"

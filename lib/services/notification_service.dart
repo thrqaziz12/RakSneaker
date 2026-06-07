@@ -95,7 +95,7 @@ class NotificationService {
     // Sesuaikan deskripsi channel berdasarkan minutesBefore
     final channelDescription = minutesBefore == 0
         ? 'Notifikasi pengingat jadwal perawatan sepatu tepat saat waktu'
-        : 'Notifikasi pengingat jadwal perawatan sepatu \$minutesBefore menit sebelum waktu';
+        : 'Notifikasi pengingat jadwal perawatan sepatu $minutesBefore menit sebelum waktu';
 
     final androidDetails = AndroidNotificationDetails(
       'jadwal_perawatan_channel',
@@ -123,7 +123,7 @@ class NotificationService {
     // Buat judul dan isi notifikasi yang relevan
     final title = minutesBefore == 0
         ? '🧹 Waktunya Perawatan Sepatu!'
-        : '🧹 Pengingat Perawatan Sepatu (\$minutesBefore menit lagi)';
+        : '🧹 Pengingat Perawatan Sepatu ($minutesBefore menit lagi)';
 
     final body =
         '${jadwal.namaSepatu} (\${jadwal.merekSepatu}) akan dirawat pukul $jamStr.'
@@ -136,19 +136,21 @@ class NotificationService {
         body,
         tzNotifTime,
         details,
-        // Gunakan inexact agar tidak perlu izin SCHEDULE_EXACT_ALARM
-        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+        // Bug #2 Fix: Gunakan exactAllowWhileIdle (USE_EXACT_ALARM, API 33+)
+        // lebih reliable daripada inexactAllowWhileIdle saat Doze Mode aktif
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
         uiLocalNotificationDateInterpretation:
             UILocalNotificationDateInterpretation.absoluteTime,
         payload: jadwal.id,
       );
 
+      // Bug #4 Fix: Gunakan double quotes agar interpolasi string ter-evaluate
       debugPrint(
-        'Notifikasi dijadwalkan untuk: '
-        '\${jadwal.namaSepatu} pada \${notifTime.toString()}',
+        "Notifikasi dijadwalkan untuk: "
+        "${jadwal.namaSepatu} pada ${notifTime.toString()}",
       );
-    } on Exception catch (_) {
-      debugPrint('Gagal menjadwalkan notifikasi: \$e');
+    } on Exception catch (e) { // Bug #3 Fix: catch (e) bukan catch (_)
+      debugPrint('Gagal menjadwalkan notifikasi: $e');
     }
   }
 
