@@ -138,7 +138,7 @@ class _JadwalScreenState extends State<JadwalScreen> {
               style: TextStyle(
                 color: _kTextPrimary,
                 fontWeight: FontWeight.w700,
-                fontSize: 20,
+                fontSize: 15,
               ),
             ),
           ],
@@ -154,12 +154,12 @@ class _JadwalScreenState extends State<JadwalScreen> {
                   borderRadius: BorderRadius.circular(10),
                 ),
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 8,
+                  horizontal: 10,
+                  vertical: 4,
                 ),
               ),
               onPressed: _showTambahJadwalSheet,
-              icon: const Icon(Icons.add_rounded, size: 18),
+              icon: const Icon(Icons.add_rounded, size: 15),
               label: const Text(
                 'Tambah',
                 style: TextStyle(fontWeight: FontWeight.w600),
@@ -497,7 +497,7 @@ class _JadwalCard extends StatelessWidget {
                     ),
                     const SizedBox(width: 4),
                     Text(
-                      'Notifikasi 2 jam sebelumnya',
+                      'Notifikasi beberapa menit sebelumnya',
                       style: TextStyle(
                         fontSize: 11,
                         color: _kPrimary.withValues(alpha: 0.8),
@@ -830,7 +830,7 @@ class _TambahJadwalSheetState extends State<_TambahJadwalSheet> {
                     const SizedBox(width: 8),
                     const Expanded(
                       child: Text(
-                        'Notifikasi otomatis akan muncul 2 jam sebelum waktu perawatan.',
+                        'Notifikasi otomatis akan muncul beberapa menit sebelum waktu perawatan.',
                         style: TextStyle(
                           fontSize: 12,
                           color: _kPrimary,
