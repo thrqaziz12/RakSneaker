@@ -5,7 +5,6 @@
 // Menggunakan flutter_local_notifications + timezone.
 // =============================================================================
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest_all.dart' as tz;
@@ -54,9 +53,10 @@ class NotificationService {
     );
 
     // Minta izin notifikasi di Android 13+
-    final androidPlugin =
-        _plugin.resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>();
+    final androidPlugin = _plugin
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >();
     await androidPlugin?.requestNotificationsPermission();
 
     _initialized = true;
@@ -72,7 +72,8 @@ class NotificationService {
     // Jika waktu notifikasi sudah lewat, tidak perlu dijadwalkan
     if (notifTime.isBefore(DateTime.now())) {
       debugPrint(
-          'Notifikasi untuk jadwal "${jadwal.namaSepatu}" sudah lewat, tidak dijadwalkan.');
+        'Notifikasi untuk jadwal "${jadwal.namaSepatu}" sudah lewat, tidak dijadwalkan.',
+      );
       return;
     }
 
@@ -119,7 +120,8 @@ class NotificationService {
     );
 
     debugPrint(
-        'Notifikasi dijadwalkan untuk: ${jadwal.namaSepatu} pada ${notifTime.toString()}');
+      'Notifikasi dijadwalkan untuk: ${jadwal.namaSepatu} pada ${notifTime.toString()}',
+    );
   }
 
   /// Batalkan notifikasi berdasarkan ID jadwal.
