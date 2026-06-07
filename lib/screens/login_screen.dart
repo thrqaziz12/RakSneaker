@@ -2,9 +2,11 @@
 // login_screen.dart
 // Halaman Login untuk aplikasi RakSneaker.
 //
-// Perubahan v3:
-//   - Tambah tombol login biometrik (fingerprint) nyata menggunakan local_auth
-//   - Navigasi setelah login sekarang menuju MainScreen (dengan BottomNav)
+// Perubahan v4:
+//   - Login biometrik tidak lagi memerlukan input username manual
+//   - Username diambil otomatis dari riwayat login terakhir (Hive 'settings')
+//   - Saat login password berhasil, username disimpan ke storage
+//   - Pesan error yang jelas jika belum pernah login sebelumnya
 // =============================================================================
 
 import 'package:flutter/material.dart';
@@ -105,6 +107,9 @@ class _LoginScreenState extends State<LoginScreen>
     if (!mounted) return;
 
     if (user != null) {
+      // Simpan username agar bisa digunakan untuk login biometrik berikutnya
+      await _authService.saveLastLoggedInUsername(user.username);
+
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
@@ -118,12 +123,17 @@ class _LoginScreenState extends State<LoginScreen>
     }
   }
 
-  /// Login menggunakan biometrik (fingerprint) nyata via local_auth
+  /// Login menggunakan biometrik (fingerprint) — tidak perlu input username.
+  /// Username diambil otomatis dari riwayat login terakhir yang tersimpan.
   Future<void> _handleBiometricLogin() async {
-    final username = _usernameController.text.trim();
-    if (username.isEmpty) {
+    // Ambil username dari riwayat login terakhir — user tidak perlu mengetik apapun
+    final savedUsername = _authService.getLastLoggedInUsername();
+
+    if (savedUsername == null || savedUsername.isEmpty) {
       setState(() {
-        _errorMessage = 'Masukkan username terlebih dahulu sebelum login biometrik';
+        _errorMessage =
+            'Silakan login dengan username & password terlebih dahulu, '
+            'lalu Anda bisa menggunakan sidik jari untuk login berikutnya.';
       });
       return;
     }
@@ -142,8 +152,7 @@ class _LoginScreenState extends State<LoginScreen>
     setState(() => _isBiometricLoading = false);
 
     if (result.success) {
-      // Cari user berdasarkan username (biometrik menggantikan password)
-      final user = _authService.getUserByUsername(username);
+      final user = _authService.getUserByUsername(savedUsername);
       if (user != null) {
         Navigator.pushReplacement(
           context,
@@ -152,15 +161,18 @@ class _LoginScreenState extends State<LoginScreen>
           ),
         );
       } else {
+        // Akun tidak ditemukan (misalnya sudah dihapus)
         setState(() {
-          _errorMessage = 'Username tidak ditemukan. Silakan login dengan password terlebih dahulu.';
+          _errorMessage =
+              'Akun tidak ditemukan. Silakan login dengan username & password.';
         });
       }
     } else {
       if (result.error == BiometricError.notEnrolled) {
         setState(() {
           _errorMessage =
-              'Tidak ada sidik jari terdaftar di perangkat. Daftarkan dulu di Pengaturan perangkat.';
+              'Tidak ada sidik jari terdaftar di perangkat. '
+              'Daftarkan dulu di Pengaturan perangkat.';
         });
       } else if (result.error == BiometricError.notSupported) {
         setState(() {
@@ -389,7 +401,9 @@ class _LoginScreenState extends State<LoginScreen>
                               ),
                             ),
                             Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 12),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                              ),
                               child: Text(
                                 'atau',
                                 style: TextStyle(
@@ -412,7 +426,9 @@ class _LoginScreenState extends State<LoginScreen>
                           height: 52,
                           child: OutlinedButton.icon(
                             onPressed:
-                                _isBiometricLoading ? null : _handleBiometricLogin,
+                                _isBiometricLoading
+                                    ? null
+                                    : _handleBiometricLogin,
                             icon: _isBiometricLoading
                                 ? const SizedBox(
                                     width: 18,
