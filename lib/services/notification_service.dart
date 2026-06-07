@@ -1,7 +1,8 @@
 // =============================================================================
 // notification_service.dart
 // Service untuk mengelola local notifications.
-// Notifikasi akan muncul 2 JAM SEBELUM waktu jadwal perawatan sepatu.
+// Notifikasi akan muncul TEPAT PADA waktu jadwal perawatan sepatu,
+// atau beberapa menit sebelumnya sesuai parameter [minutesBefore].
 // Menggunakan flutter_local_notifications + timezone.
 // =============================================================================
 
@@ -48,7 +49,7 @@ class NotificationService {
       initSettings,
       onDidReceiveNotificationResponse: (details) {
         // Handler saat notifikasi di-tap (opsional)
-        debugPrint('Notifikasi di-tap: ${details.payload}');
+        debugPrint('Notifikasi di-tap: \${details.payload}');
       },
     );
 
@@ -62,17 +63,26 @@ class NotificationService {
     _initialized = true;
   }
 
-  /// Jadwalkan notifikasi 2 jam sebelum waktu perawatan sepatu.
-  Future<void> scheduleJadwalNotification(JadwalModel jadwal) async {
+  /// Jadwalkan notifikasi pada waktu jadwal perawatan sepatu.
+  ///
+  /// [minutesBefore] menentukan berapa menit sebelum jadwal notifikasi muncul.
+  /// Default = 0 (tepat saat jadwal). Isi misalnya 5 atau 10 untuk pengingat
+  /// beberapa menit lebih awal.
+  Future<void> scheduleJadwalNotification(
+    JadwalModel jadwal, {
+    int minutesBefore = 0,
+  }) async {
     await init();
 
-    // Hitung waktu notifikasi = jadwal - 2 jam
-    final notifTime = jadwal.tanggalWaktu.subtract(const Duration(hours: 2));
+    // Hitung waktu notifikasi = waktu jadwal - minutesBefore menit
+    final notifTime = jadwal.tanggalWaktu.subtract(
+      Duration(minutes: minutesBefore),
+    );
 
     // Jika waktu notifikasi sudah lewat, tidak perlu dijadwalkan
     if (notifTime.isBefore(DateTime.now())) {
       debugPrint(
-        'Notifikasi untuk jadwal "${jadwal.namaSepatu}" sudah lewat, tidak dijadwalkan.',
+        'Notifikasi untuk jadwal "\${jadwal.namaSepatu}" sudah lewat, tidak dijadwalkan.',
       );
       return;
     }
@@ -82,38 +92,47 @@ class NotificationService {
     // Gunakan hashCode dari id sebagai notification ID (int)
     final notifId = jadwal.id.hashCode.abs() % 2147483647;
 
-    const androidDetails = AndroidNotificationDetails(
+    // Sesuaikan deskripsi channel berdasarkan minutesBefore
+    final channelDescription = minutesBefore == 0
+        ? 'Notifikasi pengingat jadwal perawatan sepatu tepat saat waktu'
+        : 'Notifikasi pengingat jadwal perawatan sepatu \$minutesBefore menit sebelum waktu';
+
+    final androidDetails = AndroidNotificationDetails(
       'jadwal_perawatan_channel',
       'Jadwal Perawatan Sepatu',
-      channelDescription:
-          'Notifikasi pengingat jadwal perawatan sepatu 2 jam sebelum waktu',
+      channelDescription: channelDescription,
       importance: Importance.high,
       priority: Priority.high,
       icon: '@mipmap/ic_launcher',
-      styleInformation: BigTextStyleInformation(''),
+      styleInformation: const BigTextStyleInformation(''),
     );
     const iosDetails = DarwinNotificationDetails(
       presentAlert: true,
       presentBadge: true,
       presentSound: true,
     );
-    const details = NotificationDetails(
+    final details = NotificationDetails(
       android: androidDetails,
       iOS: iosDetails,
     );
 
     final jam = TimeOfDay.fromDateTime(jadwal.tanggalWaktu);
     final jamStr =
-        '${jam.hour.toString().padLeft(2, '0')}:${jam.minute.toString().padLeft(2, '0')}';
+        '\${jam.hour.toString().padLeft(2, '0')}:\${jam.minute.toString().padLeft(2, '0')}';
+
+    // Buat judul dan isi notifikasi yang relevan
+    final title = minutesBefore == 0
+        ? '🧹 Waktunya Perawatan Sepatu!'
+        : '🧹 Pengingat Perawatan Sepatu (\$minutesBefore menit lagi)';
 
     final body =
-        '${jadwal.namaSepatu} (${jadwal.merekSepatu}) akan dirawat pukul $jamStr.'
-        '${jadwal.keterangan.isNotEmpty ? ' Catatan: ${jadwal.keterangan}' : ''}';
+        '\${jadwal.namaSepatu} (\${jadwal.merekSepatu}) akan dirawat pukul \$jamStr.'
+        '\${jadwal.keterangan.isNotEmpty ? ' Catatan: \${jadwal.keterangan}' : ''}';
 
     try {
       await _plugin.zonedSchedule(
         notifId,
-        '🧹 Pengingat Perawatan Sepatu',
+        title,
         body,
         tzNotifTime,
         details,
@@ -126,10 +145,10 @@ class NotificationService {
 
       debugPrint(
         'Notifikasi dijadwalkan untuk: '
-        '${jadwal.namaSepatu} pada ${notifTime.toString()}',
+        '\${jadwal.namaSepatu} pada \${notifTime.toString()}',
       );
     } on Exception catch (e) {
-      debugPrint('Gagal menjadwalkan notifikasi: $e');
+      debugPrint('Gagal menjadwalkan notifikasi: \$e');
     }
   }
 
@@ -138,7 +157,7 @@ class NotificationService {
     await init();
     final notifId = jadwalId.hashCode.abs() % 2147483647;
     await _plugin.cancel(notifId);
-    debugPrint('Notifikasi dibatalkan untuk jadwal id: $jadwalId');
+    debugPrint('Notifikasi dibatalkan untuk jadwal id: \$jadwalId');
   }
 
   /// Batalkan semua notifikasi.
