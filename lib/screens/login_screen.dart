@@ -2,14 +2,15 @@
 // login_screen.dart
 // Halaman Login untuk aplikasi RakSneaker.
 //
-// Perubahan v2:
+// Perubahan v3:
+//   - Tambah tombol login biometrik (fingerprint) nyata menggunakan local_auth
 //   - Navigasi setelah login sekarang menuju MainScreen (dengan BottomNav)
-//     menggantikan HomeScreen langsung.
 // =============================================================================
 
 import 'package:flutter/material.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 import '../services/auth_service.dart';
+import '../services/biometric_service.dart';
 import 'register_screen.dart';
 import 'main_screen.dart';
 
@@ -37,10 +38,13 @@ class _LoginScreenState extends State<LoginScreen>
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
   final _authService = AuthService();
+  final _biometricService = BiometricService();
 
   bool _isLoading = false;
+  bool _isBiometricLoading = false;
   bool _obscurePassword = true;
   String? _errorMessage;
+  bool _isBiometricAvailable = false;
 
   late AnimationController _animController;
   late Animation<double> _fadeAnimation;
@@ -62,6 +66,15 @@ class _LoginScreenState extends State<LoginScreen>
           CurvedAnimation(parent: _animController, curve: Curves.easeOutCubic),
         );
     _animController.forward();
+    _checkBiometricAvailability();
+  }
+
+  Future<void> _checkBiometricAvailability() async {
+    final supported = await _biometricService.isDeviceSupported();
+    final enrolled = await _biometricService.canCheckBiometrics();
+    if (mounted) {
+      setState(() => _isBiometricAvailable = supported && enrolled);
+    }
   }
 
   @override
@@ -92,7 +105,6 @@ class _LoginScreenState extends State<LoginScreen>
     if (!mounted) return;
 
     if (user != null) {
-      // Navigasi ke MainScreen yang memiliki BottomNavigationBar
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
@@ -103,6 +115,62 @@ class _LoginScreenState extends State<LoginScreen>
       setState(() {
         _errorMessage = 'Username atau password salah';
       });
+    }
+  }
+
+  /// Login menggunakan biometrik (fingerprint) nyata via local_auth
+  Future<void> _handleBiometricLogin() async {
+    final username = _usernameController.text.trim();
+    if (username.isEmpty) {
+      setState(() {
+        _errorMessage = 'Masukkan username terlebih dahulu sebelum login biometrik';
+      });
+      return;
+    }
+
+    setState(() {
+      _isBiometricLoading = true;
+      _errorMessage = null;
+    });
+
+    final result = await _biometricService.authenticate(
+      reason: 'Verifikasi sidik jari untuk masuk ke RakSneaker',
+    );
+
+    if (!mounted) return;
+
+    setState(() => _isBiometricLoading = false);
+
+    if (result.success) {
+      // Cari user berdasarkan username (biometrik menggantikan password)
+      final user = _authService.getUserByUsername(username);
+      if (user != null) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => MainScreen(username: user.username),
+          ),
+        );
+      } else {
+        setState(() {
+          _errorMessage = 'Username tidak ditemukan. Silakan login dengan password terlebih dahulu.';
+        });
+      }
+    } else {
+      if (result.error == BiometricError.notEnrolled) {
+        setState(() {
+          _errorMessage =
+              'Tidak ada sidik jari terdaftar di perangkat. Daftarkan dulu di Pengaturan perangkat.';
+        });
+      } else if (result.error == BiometricError.notSupported) {
+        setState(() {
+          _errorMessage = 'Perangkat tidak mendukung autentikasi biometrik.';
+        });
+      } else {
+        setState(() {
+          _errorMessage = 'Autentikasi biometrik dibatalkan atau gagal.';
+        });
+      }
     }
   }
 
@@ -258,11 +326,13 @@ class _LoginScreenState extends State<LoginScreen>
                                 size: 18,
                               ),
                               const SizedBox(width: 8),
-                              Text(
-                                _errorMessage!,
-                                style: const TextStyle(
-                                  color: kErrorColor,
-                                  fontSize: 13,
+                              Expanded(
+                                child: Text(
+                                  _errorMessage!,
+                                  style: const TextStyle(
+                                    color: kErrorColor,
+                                    fontSize: 13,
+                                  ),
                                 ),
                               ),
                             ],
@@ -272,6 +342,7 @@ class _LoginScreenState extends State<LoginScreen>
 
                       const SizedBox(height: 32),
 
+                      // Tombol Login dengan password
                       SizedBox(
                         width: double.infinity,
                         height: 52,
@@ -305,6 +376,79 @@ class _LoginScreenState extends State<LoginScreen>
                                 ),
                         ),
                       ),
+
+                      // Tombol Login Biometrik (hanya tampil jika tersedia)
+                      if (_isBiometricAvailable) ...[
+                        const SizedBox(height: 16),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Divider(
+                                color: kBorderColor,
+                                thickness: 1,
+                              ),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 12),
+                              child: Text(
+                                'atau',
+                                style: TextStyle(
+                                  color: kTextFaint,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ),
+                            Expanded(
+                              child: Divider(
+                                color: kBorderColor,
+                                thickness: 1,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        SizedBox(
+                          width: double.infinity,
+                          height: 52,
+                          child: OutlinedButton.icon(
+                            onPressed:
+                                _isBiometricLoading ? null : _handleBiometricLogin,
+                            icon: _isBiometricLoading
+                                ? const SizedBox(
+                                    width: 18,
+                                    height: 18,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: kPrimaryColor,
+                                    ),
+                                  )
+                                : const Icon(
+                                    Icons.fingerprint_rounded,
+                                    size: 22,
+                                    color: kPrimaryColor,
+                                  ),
+                            label: Text(
+                              _isBiometricLoading
+                                  ? 'Memverifikasi…'
+                                  : 'Masuk dengan Sidik Jari',
+                              style: const TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w600,
+                                color: kPrimaryColor,
+                              ),
+                            ),
+                            style: OutlinedButton.styleFrom(
+                              side: const BorderSide(
+                                color: kPrimaryColor,
+                                width: 1.5,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
 
                       const Spacer(),
 

@@ -5,16 +5,17 @@
 // Flow:
 //   1. User sudah login (username tersedia)
 //   2. Buka halaman ini dari ProfileScreen
-//   3. Tekan tombol "Tambah Sidik Jari" → dialog konfirmasi simulasi biometrik
-//   4. Sidik jari tersimpan di Hive box 'fingerprints' dengan label & timestamp
-//   5. Daftar sidik jari terdaftar tampil di list
-//   6. User dapat menghapus sidik jari
+//   3. Tekan tombol "Tambah Sidik Jari"
+//   4. App memanggil local_auth (LocalAuthentication) untuk verifikasi
+//      sidik jari NYATA dari sensor hardware perangkat
+//   5. Jika berhasil → simpan record ke Hive box 'fingerprints'
+//   6. Daftar sidik jari terdaftar tampil di list
+//   7. User dapat menghapus sidik jari
 //
-// Catatan:
-//   Karena local_auth membutuhkan perangkat fisik/emulator dengan sensor
-//   biometrik aktif, simulasi tap UI digunakan di sini agar flow tetap
-//   berjalan di semua environment. Untuk production, ganti bagian
-//   _simulateFingerprint() dengan pemanggilan LocalAuthentication.
+// Implementasi:
+//   Menggunakan package local_auth ^2.3.0 untuk autentikasi biometrik nyata.
+//   Sensor fingerprint hardware perangkat dipanggil via LocalAuthentication.
+//   Fallback graceful jika perangkat tidak mendukung biometrik.
 //
 // Tema: Light Mode Sneaker — Oranye #FF6B35
 // =============================================================================
@@ -22,6 +23,7 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import '../models/fingerprint_model.dart';
+import '../services/biometric_service.dart';
 
 const _kPrimary = Color(0xFFFF6B35);
 const _kPrimaryDark = Color(0xFFD94F1A);
@@ -49,6 +51,10 @@ class _FingerprintScreenState extends State<FingerprintScreen>
   late Box<FingerprintModel> _box;
   bool _boxReady = false;
 
+  final _biometricService = BiometricService();
+  bool _isBiometricSupported = false;
+  bool _isBiometricEnrolled = false;
+
   // Animasi tombol pulse saat scanning
   late AnimationController _pulseController;
   late Animation<double> _pulseAnimation;
@@ -64,11 +70,23 @@ class _FingerprintScreenState extends State<FingerprintScreen>
       CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
     );
     _initBox();
+    _checkBiometricStatus();
   }
 
   Future<void> _initBox() async {
     _box = await Hive.openBox<FingerprintModel>('fingerprints');
     if (mounted) setState(() => _boxReady = true);
+  }
+
+  Future<void> _checkBiometricStatus() async {
+    final supported = await _biometricService.isDeviceSupported();
+    final enrolled = await _biometricService.canCheckBiometrics();
+    if (mounted) {
+      setState(() {
+        _isBiometricSupported = supported;
+        _isBiometricEnrolled = enrolled;
+      });
+    }
   }
 
   @override
@@ -87,12 +105,29 @@ class _FingerprintScreenState extends State<FingerprintScreen>
       : [];
 
   // -------------------------------------------------------------------
-  // Dialog tambah sidik jari
+  // Dialog tambah sidik jari — memanggil sensor biometrik NYATA
   // -------------------------------------------------------------------
   void _showAddDialog() {
+    // Jika perangkat tidak support biometrik, tampilkan info
+    if (!_isBiometricSupported) {
+      _showInfoSnackbar(
+        'Perangkat ini tidak mendukung autentikasi biometrik.',
+        isError: true,
+      );
+      return;
+    }
+    if (!_isBiometricEnrolled) {
+      _showInfoSnackbar(
+        'Tidak ada sidik jari terdaftar di perangkat. Silakan daftarkan dulu di Pengaturan → Keamanan.',
+        isError: true,
+      );
+      return;
+    }
+
     final labelController = TextEditingController();
     bool isScanning = false;
     bool scanned = false;
+    String? errorMsg;
 
     showDialog(
       context: context,
@@ -100,6 +135,35 @@ class _FingerprintScreenState extends State<FingerprintScreen>
       builder: (ctx) {
         return StatefulBuilder(
           builder: (ctx, setDlgState) {
+            // Fungsi yang memanggil sensor biometrik nyata
+            Future<void> scanFingerprint() async {
+              setDlgState(() {
+                isScanning = true;
+                errorMsg = null;
+              });
+
+              final result = await _biometricService.authenticate(
+                reason:
+                    'Tempelkan jari Anda pada sensor untuk mendaftarkan sidik jari ke RakSneaker',
+              );
+
+              if (!ctx.mounted) return;
+
+              if (result.success) {
+                setDlgState(() {
+                  isScanning = false;
+                  scanned = true;
+                  errorMsg = null;
+                });
+              } else {
+                setDlgState(() {
+                  isScanning = false;
+                  scanned = false;
+                  errorMsg = result.message;
+                });
+              }
+            }
+
             return AlertDialog(
               backgroundColor: _kSurface,
               shape: RoundedRectangleBorder(
@@ -123,7 +187,7 @@ class _FingerprintScreenState extends State<FingerprintScreen>
                       controller: labelController,
                       style: const TextStyle(color: _kTextPrimary),
                       decoration: InputDecoration(
-                        hintText: 'Nama sidik jari (contoh: Jari Kanan)',
+                        hintText: 'Nama sidik jari (contoh: Jari Telunjuk Kanan)',
                         hintStyle: const TextStyle(color: _kTextFaint),
                         filled: true,
                         fillColor: _kBg,
@@ -150,21 +214,9 @@ class _FingerprintScreenState extends State<FingerprintScreen>
                     ),
                     const SizedBox(height: 24),
 
-                    // Area scan sidik jari (simulasi)
+                    // Tombol scan sidik jari — memanggil sensor hardware nyata
                     GestureDetector(
-                      onTap: scanned || isScanning
-                          ? null
-                          : () async {
-                              setDlgState(() => isScanning = true);
-                              // Simulasi proses scan selama 1.5 detik
-                              await Future.delayed(
-                                const Duration(milliseconds: 1500),
-                              );
-                              setDlgState(() {
-                                isScanning = false;
-                                scanned = true;
-                              });
-                            },
+                      onTap: scanned || isScanning ? null : scanFingerprint,
                       child: AnimatedContainer(
                         duration: const Duration(milliseconds: 300),
                         width: 100,
@@ -208,12 +260,12 @@ class _FingerprintScreenState extends State<FingerprintScreen>
                               ),
                       ),
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 10),
                     Text(
                       scanned
-                          ? 'Sidik jari terdeteksi ✓'
+                          ? 'Sidik jari terverifikasi ✓'
                           : isScanning
-                          ? 'Memindai…'
+                          ? 'Menunggu sensor…'
                           : 'Ketuk ikon untuk memindai',
                       style: TextStyle(
                         color: scanned
@@ -227,6 +279,43 @@ class _FingerprintScreenState extends State<FingerprintScreen>
                             : FontWeight.normal,
                       ),
                     ),
+
+                    // Tampilkan pesan error jika autentikasi gagal
+                    if (errorMsg != null) ...[
+                      const SizedBox(height: 10),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                        decoration: BoxDecoration(
+                          color: _kError.withValues(alpha: 0.08),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: _kError.withValues(alpha: 0.25),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.error_outline_rounded,
+                              color: _kError,
+                              size: 16,
+                            ),
+                            const SizedBox(width: 6),
+                            Expanded(
+                              child: Text(
+                                errorMsg!,
+                                style: const TextStyle(
+                                  color: _kError,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -309,6 +398,35 @@ class _FingerprintScreenState extends State<FingerprintScreen>
     );
   }
 
+  void _showInfoSnackbar(String message, {bool isError = false}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: isError ? _kError : _kPrimary,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        content: Row(
+          children: [
+            Icon(
+              isError
+                  ? Icons.error_outline_rounded
+                  : Icons.info_outline_rounded,
+              color: Colors.white,
+              size: 18,
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                message,
+                style: const TextStyle(color: Colors.white),
+              ),
+            ),
+          ],
+        ),
+        duration: const Duration(seconds: 4),
+      ),
+    );
+  }
+
   Future<void> _deleteFingerprint(FingerprintModel fp) async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -385,9 +503,44 @@ class _FingerprintScreenState extends State<FingerprintScreen>
       ),
       body: !_boxReady
           ? const Center(child: CircularProgressIndicator(color: _kPrimary))
-          : fps.isEmpty
-          ? _buildEmptyState()
-          : _buildList(fps),
+          : Column(
+              children: [
+                // Banner status biometrik
+                if (!_isBiometricSupported || !_isBiometricEnrolled)
+                  _buildBiometricWarning(),
+                Expanded(
+                  child: fps.isEmpty ? _buildEmptyState() : _buildList(fps),
+                ),
+              ],
+            ),
+    );
+  }
+
+  // Banner peringatan jika biometrik tidak siap
+  Widget _buildBiometricWarning() {
+    final msg = !_isBiometricSupported
+        ? 'Perangkat ini tidak mendukung biometrik'
+        : 'Belum ada sidik jari di perangkat. Daftarkan dulu di Pengaturan → Keamanan.';
+    return Container(
+      margin: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: _kError.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: _kError.withValues(alpha: 0.25)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.warning_amber_rounded, color: _kError, size: 18),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              msg,
+              style: const TextStyle(color: _kError, fontSize: 12),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -507,7 +660,7 @@ class _FingerprintScreenState extends State<FingerprintScreen>
           child: ListView.separated(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
             itemCount: fps.length,
-            separatorBuilder: (_, _) => const SizedBox(height: 10),
+            separatorBuilder: (_, __) => const SizedBox(height: 10),
             itemBuilder: (_, i) {
               final fp = fps[i];
               return _FingerprintTile(
