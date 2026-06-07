@@ -85,4 +85,19 @@ class AuthService {
       return null;
     }
   }
+
+  /// Cari user berdasarkan username (tanpa validasi password)
+  /// Digunakan untuk login biometrik
+  /// Return UserModel jika ditemukan, null jika tidak ada
+  UserModel? getUserByUsername(String username) {
+    if (username.trim().isEmpty) return null;
+
+    try {
+      return _usersBox.values.firstWhere(
+        (u) => u.username.toLowerCase() == username.trim().toLowerCase(),
+      );
+    } catch (_) {
+      return null;
+    }
+  }
 }
