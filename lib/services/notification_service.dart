@@ -118,7 +118,7 @@ class NotificationService {
 
     final jam = TimeOfDay.fromDateTime(jadwal.tanggalWaktu);
     final jamStr =
-        '\${jam.hour.toString().padLeft(2, '0')}:\${jam.minute.toString().padLeft(2, '0')}';
+        '${jam.hour.toString().padLeft(2, '0')}:${jam.minute.toString().padLeft(2, '0')}';
 
     // Buat judul dan isi notifikasi yang relevan
     final title = minutesBefore == 0
@@ -126,8 +126,8 @@ class NotificationService {
         : '🧹 Pengingat Perawatan Sepatu (\$minutesBefore menit lagi)';
 
     final body =
-        '\${jadwal.namaSepatu} (\${jadwal.merekSepatu}) akan dirawat pukul \$jamStr.'
-        '\${jadwal.keterangan.isNotEmpty ? ' Catatan: \${jadwal.keterangan}' : ''}';
+        '${jadwal.namaSepatu} (\${jadwal.merekSepatu}) akan dirawat pukul $jamStr.'
+        '${jadwal.keterangan.isNotEmpty ? ' Catatan: ${jadwal.keterangan}' : ''}';
 
     try {
       await _plugin.zonedSchedule(
