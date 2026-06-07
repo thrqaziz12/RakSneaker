@@ -15,16 +15,15 @@ import 'package:material_design_icons_flutter/material_design_icons_flutter.dart
 import 'fingerprint_screen.dart';
 import 'login_screen.dart';
 
-const _kPrimary       = Color(0xFFFF6B35);
-const _kPrimaryDark   = Color(0xFFD94F1A);
-const _kBg            = Color(0xFFFFF8F5);
-const _kSurface       = Color(0xFFFFFFFF);
+const _kPrimary = Color(0xFFFF6B35);
+const _kBg = Color(0xFFFFF8F5);
+const _kSurface = Color(0xFFFFFFFF);
 const _kSurfaceAccent = Color(0xFFFFF0E8);
-const _kTextPrimary   = Color(0xFF1A1A1A);
-const _kTextMuted     = Color(0xFF6B6B6B);
-const _kTextFaint     = Color(0xFFB0B0B0);
-const _kBorder        = Color(0xFFE8E0DB);
-const _kError         = Color(0xFFD92B4B);
+const _kTextPrimary = Color(0xFF1A1A1A);
+const _kTextMuted = Color(0xFF6B6B6B);
+const _kTextFaint = Color(0xFFB0B0B0);
+const _kBorder = Color(0xFFE8E0DB);
+const _kError = Color(0xFFD92B4B);
 
 class ProfileScreen extends StatelessWidget {
   final String username;
@@ -283,10 +282,7 @@ class _MenuTile extends StatelessWidget {
                     const SizedBox(height: 2),
                     Text(
                       sublabel,
-                      style: const TextStyle(
-                        color: _kTextMuted,
-                        fontSize: 12,
-                      ),
+                      style: const TextStyle(color: _kTextMuted, fontSize: 12),
                     ),
                   ],
                 ),
