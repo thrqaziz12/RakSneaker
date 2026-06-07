@@ -10,6 +10,7 @@ void main() async {
   Hive.registerAdapter(UserModelAdapter());
   Hive.registerAdapter(FingerprintModelAdapter());
   await Hive.openBox<UserModel>('users');
+  await Hive.openBox<dynamic>('settings'); // Digunakan oleh AuthService untuk menyimpan lastLoggedInUsername
   runApp(const RakSneakerApp());
 }
 
