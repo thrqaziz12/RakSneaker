@@ -73,9 +73,16 @@ class NotificationService {
           AndroidFlutterLocalNotificationsPlugin
         >();
     if (androidPlugin == null) return true;
-    // canScheduleExactAlarms() tersedia di flutter_local_notifications >= 14
-    final canSchedule = await androidPlugin.canScheduleExactAlarms();
-    return canSchedule ?? true;
+    // Gunakan checkExactAlarmsPermissionStatus() yang tersedia di
+    // flutter_local_notifications v18.x
+    try {
+      final status = await androidPlugin.checkExactAlarmsPermissionStatus();
+      // ExactAlarmsPermissionStatus.granted berarti izin diberikan
+      return status == ExactAlarmsPermissionStatus.granted;
+    } catch (_) {
+      // Fallback jika API tidak tersedia (Android < 12)
+      return true;
+    }
   }
 
   /// Jadwalkan notifikasi 2 jam sebelum waktu perawatan sepatu.
