@@ -2,15 +2,21 @@ import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'models/user_model.dart';
 import 'models/fingerprint_model.dart';
+import 'models/jadwal_model.dart';
 import 'screens/login_screen.dart';
+import 'services/notification_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Hive.initFlutter();
   Hive.registerAdapter(UserModelAdapter());
   Hive.registerAdapter(FingerprintModelAdapter());
+  Hive.registerAdapter(JadwalModelAdapter());
   await Hive.openBox<UserModel>('users');
-  await Hive.openBox<dynamic>('settings'); // Digunakan oleh AuthService untuk menyimpan lastLoggedInUsername
+  await Hive.openBox<dynamic>('settings');
+  await Hive.openBox<JadwalModel>('jadwal');
+  // Inisialisasi NotificationService di awal
+  await NotificationService().init();
   runApp(const RakSneakerApp());
 }
 

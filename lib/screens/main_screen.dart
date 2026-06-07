@@ -3,8 +3,9 @@
 // Shell utama aplikasi RakSneaker dengan BottomNavigationBar.
 //
 // Tabs:
-//   0 - Home  : Beranda koleksi sneaker
-//   1 - Profile: Info akun + menu Sidik Jari
+//   0 - Home    : Beranda koleksi sneaker
+//   1 - Jadwal  : Jadwal perawatan sepatu + local notification
+//   2 - Profile : Info akun + menu Sidik Jari
 //
 // Tema: Light Mode Sneaker — Oranye #FF6B35
 // =============================================================================
@@ -12,6 +13,7 @@
 import 'package:flutter/material.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 import 'home_screen.dart';
+import 'jadwal_screen.dart';
 import 'profile_screen.dart';
 
 const kPrimaryColor   = Color(0xFFFF6B35);
@@ -40,6 +42,7 @@ class _MainScreenState extends State<MainScreen>
     super.initState();
     _pages = [
       HomeScreen(username: widget.username),
+      const JadwalScreen(),
       ProfileScreen(username: widget.username),
     ];
   }
@@ -89,6 +92,17 @@ class _MainScreenState extends State<MainScreen>
                 child: Icon(MdiIcons.shoeSneaker),
               ),
               label: 'Home',
+            ),
+            BottomNavigationBarItem(
+              icon: const Padding(
+                padding: EdgeInsets.only(bottom: 2),
+                child: Icon(Icons.calendar_month_outlined),
+              ),
+              activeIcon: const Padding(
+                padding: EdgeInsets.only(bottom: 2),
+                child: Icon(Icons.calendar_month_rounded),
+              ),
+              label: 'Jadwal',
             ),
             const BottomNavigationBarItem(
               icon: Padding(
