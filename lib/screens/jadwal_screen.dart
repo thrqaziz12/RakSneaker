@@ -20,6 +20,10 @@ const _kTextPrimary = Color(0xFF1A1A1A);
 const _kTextMuted = Color(0xFF6B6B6B);
 const _kBorder = Color(0xFFE8E0DB);
 
+// Bug Fix #1: Konstanta minutesBefore terpusat — ubah di sini untuk
+// mengubah kapan notifikasi muncul di seluruh aplikasi.
+const int _kNotifMinutesBefore = 30;
+
 class JadwalScreen extends StatefulWidget {
   const JadwalScreen({super.key});
 
@@ -99,15 +103,22 @@ class _JadwalScreenState extends State<JadwalScreen> {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) => _TambahJadwalSheet(
+        // Bug Fix #1: Teruskan minutesBefore ke scheduleJadwalNotification
+        // Sebelumnya dipanggil tanpa parameter → selalu minutesBefore = 0
+        // (tepat saat waktu, tidak ada pengingat awal sama sekali).
         onSave: (jadwal) async {
           await _jadwalService.tambahJadwal(jadwal);
-          await _notifService.scheduleJadwalNotification(jadwal);
+          await _notifService.scheduleJadwalNotification(
+            jadwal,
+            minutesBefore: _kNotifMinutesBefore,
+          );
           if (mounted) {
+            final infoTeks = _kNotifMinutesBefore == 0
+                ? 'Notifikasi akan muncul tepat saat jadwal.'
+                : 'Notifikasi akan muncul $_kNotifMinutesBefore menit sebelumnya.';
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: const Text(
-                  '✅ Jadwal disimpan! Notifikasi akan muncul beberapa menit sebelumnya.',
-                ),
+                content: Text('✅ Jadwal disimpan! $infoTeks'),
                 backgroundColor: _kPrimary,
                 behavior: SnackBarBehavior.floating,
                 shape: RoundedRectangleBorder(
@@ -486,6 +497,7 @@ class _JadwalCard extends StatelessWidget {
                   ],
                 ),
               ],
+              // Bug Fix #6: Tampilkan info notifikasi yang akurat
               if (!isPast) ...[
                 const SizedBox(height: 10),
                 Row(
@@ -497,7 +509,9 @@ class _JadwalCard extends StatelessWidget {
                     ),
                     const SizedBox(width: 4),
                     Text(
-                      'Notifikasi beberapa menit sebelumnya',
+                      _kNotifMinutesBefore == 0
+                          ? 'Notifikasi tepat saat waktu perawatan'
+                          : 'Notifikasi $_kNotifMinutesBefore menit sebelum perawatan',
                       style: TextStyle(
                         fontSize: 11,
                         color: _kPrimary.withValues(alpha: 0.8),
@@ -812,7 +826,7 @@ class _TambahJadwalSheetState extends State<_TambahJadwalSheet> {
                 ),
               ),
               const SizedBox(height: 12),
-              // Notif info
+              // Bug Fix #6: Tampilkan info notifikasi yang akurat sesuai _kNotifMinutesBefore
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
@@ -828,10 +842,12 @@ class _TambahJadwalSheetState extends State<_TambahJadwalSheet> {
                       size: 18,
                     ),
                     const SizedBox(width: 8),
-                    const Expanded(
+                    Expanded(
                       child: Text(
-                        'Notifikasi otomatis akan muncul beberapa menit sebelum waktu perawatan.',
-                        style: TextStyle(
+                        _kNotifMinutesBefore == 0
+                            ? 'Notifikasi otomatis akan muncul tepat saat waktu perawatan.'
+                            : 'Notifikasi otomatis akan muncul $_kNotifMinutesBefore menit sebelum waktu perawatan.',
+                        style: const TextStyle(
                           fontSize: 12,
                           color: _kPrimary,
                           fontWeight: FontWeight.w500,

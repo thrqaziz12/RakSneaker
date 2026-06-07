@@ -24,15 +24,16 @@ class NotificationService {
 
   /// Inisialisasi plugin dan timezone. Panggil sekali di main().
   Future<void> init() async {
-    if (_initialized) return;
+    // Bug Fix #3: Selalu inisialisasi timezone data & set lokal
+    // agar tz.local tidak invalid setelah hot restart / re-init.
     tz.initializeTimeZones();
-
-    // Set timezone ke Asia/Jakarta (WIB)
     try {
       tz.setLocalLocation(tz.getLocation('Asia/Jakarta'));
     } catch (_) {
       // Fallback jika timezone tidak tersedia
     }
+
+    if (_initialized) return;
 
     const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
     const iosInit = DarwinInitializationSettings(
@@ -49,7 +50,7 @@ class NotificationService {
       initSettings,
       onDidReceiveNotificationResponse: (details) {
         // Handler saat notifikasi di-tap (opsional)
-        debugPrint('Notifikasi di-tap: \${details.payload}');
+        debugPrint('Notifikasi di-tap: ${details.payload}');
       },
     );
 
@@ -66,11 +67,10 @@ class NotificationService {
   /// Jadwalkan notifikasi pada waktu jadwal perawatan sepatu.
   ///
   /// [minutesBefore] menentukan berapa menit sebelum jadwal notifikasi muncul.
-  /// Default = 0 (tepat saat jadwal). Isi misalnya 5 atau 10 untuk pengingat
-  /// beberapa menit lebih awal.
+  /// Default = 30 (30 menit sebelum jadwal). Isi 0 untuk tepat saat jadwal.
   Future<void> scheduleJadwalNotification(
     JadwalModel jadwal, {
-    int minutesBefore = 0,
+    int minutesBefore = 30,
   }) async {
     await init();
 
@@ -82,7 +82,7 @@ class NotificationService {
     // Jika waktu notifikasi sudah lewat, tidak perlu dijadwalkan
     if (notifTime.isBefore(DateTime.now())) {
       debugPrint(
-        'Notifikasi untuk jadwal "\${jadwal.namaSepatu}" sudah lewat, tidak dijadwalkan.',
+        'Notifikasi untuk jadwal "${jadwal.namaSepatu}" sudah lewat, tidak dijadwalkan.',
       );
       return;
     }
@@ -101,7 +101,7 @@ class NotificationService {
       'jadwal_perawatan_channel',
       'Jadwal Perawatan Sepatu',
       channelDescription: channelDescription,
-      importance: Importance.high,
+      importance: Importance.max,
       priority: Priority.high,
       icon: '@mipmap/ic_launcher',
       styleInformation: const BigTextStyleInformation(''),
@@ -126,30 +126,41 @@ class NotificationService {
         : '🧹 Pengingat Perawatan Sepatu ($minutesBefore menit lagi)';
 
     final body =
-        '${jadwal.namaSepatu} (\${jadwal.merekSepatu}) akan dirawat pukul $jamStr.'
+        '${jadwal.namaSepatu} (${jadwal.merekSepatu}) akan dirawat pukul $jamStr.'
         '${jadwal.keterangan.isNotEmpty ? ' Catatan: ${jadwal.keterangan}' : ''}';
 
     try {
+      // Bug Fix #4: Cek izin SCHEDULE_EXACT_ALARM (Android 12+)
+      // Gunakan exactAllowWhileIdle jika izin tersedia, fallback ke exact.
+      final androidImpl = _plugin
+          .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin
+          >();
+      final canScheduleExact =
+          await androidImpl?.canScheduleExactNotifications() ?? true;
+
+      final scheduleMode = canScheduleExact
+          ? AndroidScheduleMode.exactAllowWhileIdle
+          : AndroidScheduleMode.exact;
+
       await _plugin.zonedSchedule(
         notifId,
         title,
         body,
         tzNotifTime,
         details,
-        // Bug #2 Fix: Gunakan exactAllowWhileIdle (USE_EXACT_ALARM, API 33+)
-        // lebih reliable daripada inexactAllowWhileIdle saat Doze Mode aktif
-        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        androidScheduleMode: scheduleMode,
         uiLocalNotificationDateInterpretation:
             UILocalNotificationDateInterpretation.absoluteTime,
         payload: jadwal.id,
       );
 
-      // Bug #4 Fix: Gunakan double quotes agar interpolasi string ter-evaluate
       debugPrint(
-        "Notifikasi dijadwalkan untuk: "
-        "${jadwal.namaSepatu} pada ${notifTime.toString()}",
+        'Notifikasi dijadwalkan untuk: '
+        '${jadwal.namaSepatu} pada ${notifTime.toString()} '
+        '(mode: ${scheduleMode.name})',
       );
-    } on Exception catch (e) { // Bug #3 Fix: catch (e) bukan catch (_)
+    } on Exception catch (e) {
       debugPrint('Gagal menjadwalkan notifikasi: $e');
     }
   }
@@ -159,7 +170,8 @@ class NotificationService {
     await init();
     final notifId = jadwalId.hashCode.abs() % 2147483647;
     await _plugin.cancel(notifId);
-    debugPrint('Notifikasi dibatalkan untuk jadwal id: \$jadwalId');
+    // Bug Fix #2: Perbaiki string interpolasi (sebelumnya memakai \$jadwalId)
+    debugPrint('Notifikasi dibatalkan untuk jadwal id: $jadwalId');
   }
 
   /// Batalkan semua notifikasi.
