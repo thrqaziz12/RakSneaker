@@ -59,30 +59,7 @@ class NotificationService {
         >();
     await androidPlugin?.requestNotificationsPermission();
 
-    // Minta izin exact alarm di Android 12+ (API 31+)
-    // Ini mencegah PlatformException(exact_alarms_not_permitted, ...)
-    await androidPlugin?.requestExactAlarmsPermission();
-
     _initialized = true;
-  }
-
-  /// Cek apakah exact alarm diizinkan (Android 12+).
-  Future<bool> _canUseExactAlarm() async {
-    final androidPlugin = _plugin
-        .resolvePlatformSpecificImplementation<
-          AndroidFlutterLocalNotificationsPlugin
-        >();
-    if (androidPlugin == null) return true;
-    // Gunakan checkExactAlarmsPermissionStatus() yang tersedia di
-    // flutter_local_notifications v18.x
-    try {
-      final status = await androidPlugin.checkExactAlarmsPermissionStatus();
-      // ExactAlarmsPermissionStatus.granted berarti izin diberikan
-      return status == ExactAlarmsPermissionStatus.granted;
-    } catch (_) {
-      // Fallback jika API tidak tersedia (Android < 12)
-      return true;
-    }
   }
 
   /// Jadwalkan notifikasi 2 jam sebelum waktu perawatan sepatu.
@@ -133,12 +110,6 @@ class NotificationService {
         '${jadwal.namaSepatu} (${jadwal.merekSepatu}) akan dirawat pukul $jamStr.'
         '${jadwal.keterangan.isNotEmpty ? ' Catatan: ${jadwal.keterangan}' : ''}';
 
-    // Pilih mode jadwal: gunakan exact jika diizinkan, fallback ke inexact
-    final canExact = await _canUseExactAlarm();
-    final scheduleMode = canExact
-        ? AndroidScheduleMode.exactAllowWhileIdle
-        : AndroidScheduleMode.inexactAllowWhileIdle;
-
     try {
       await _plugin.zonedSchedule(
         notifId,
@@ -146,37 +117,19 @@ class NotificationService {
         body,
         tzNotifTime,
         details,
-        androidScheduleMode: scheduleMode,
+        // Gunakan inexact agar tidak perlu izin SCHEDULE_EXACT_ALARM
+        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
         uiLocalNotificationDateInterpretation:
             UILocalNotificationDateInterpretation.absoluteTime,
         payload: jadwal.id,
       );
 
       debugPrint(
-        'Notifikasi dijadwalkan (${canExact ? "exact" : "inexact"}) untuk: '
+        'Notifikasi dijadwalkan untuk: '
         '${jadwal.namaSepatu} pada ${notifTime.toString()}',
       );
     } on Exception catch (e) {
-      // Jika exact masih gagal (misal user menolak izin), coba inexact sebagai last resort
-      debugPrint('Gagal jadwalkan exact alarm, mencoba inexact: $e');
-      try {
-        await _plugin.zonedSchedule(
-          notifId,
-          '🧹 Pengingat Perawatan Sepatu',
-          body,
-          tzNotifTime,
-          details,
-          androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
-          uiLocalNotificationDateInterpretation:
-              UILocalNotificationDateInterpretation.absoluteTime,
-          payload: jadwal.id,
-        );
-        debugPrint(
-          'Notifikasi dijadwalkan (inexact fallback) untuk: ${jadwal.namaSepatu}',
-        );
-      } on Exception catch (e2) {
-        debugPrint('Gagal total menjadwalkan notifikasi: $e2');
-      }
+      debugPrint('Gagal menjadwalkan notifikasi: $e');
     }
   }
 
