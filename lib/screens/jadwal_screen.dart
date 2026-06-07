@@ -174,11 +174,11 @@ class _JadwalScreenState extends State<JadwalScreen> {
               width: 100,
               height: 100,
               decoration: BoxDecoration(
-                color: _kPrimary.withOpacity(0.1),
+                color: _kPrimary.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
               child: Icon(MdiIcons.calendarBlankOutline,
-                  size: 52, color: _kPrimary.withOpacity(0.7)),
+                  size: 52, color: _kPrimary.withValues(alpha: 0.7)),
             ),
             const SizedBox(height: 24),
             const Text(
@@ -263,8 +263,8 @@ class _JadwalScreenState extends State<JadwalScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
               decoration: BoxDecoration(
                 color: isPast
-                    ? _kTextMuted.withOpacity(0.1)
-                    : _kPrimary.withOpacity(0.12),
+                    ? _kTextMuted.withValues(alpha: 0.1)
+                    : _kPrimary.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(999),
               ),
               child: Text(
@@ -332,7 +332,7 @@ class _JadwalCard extends StatelessWidget {
               ? null
               : [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
+                    color: Colors.black.withValues(alpha: 0.05),
                     blurRadius: 8,
                     offset: const Offset(0, 2),
                   ),
@@ -352,7 +352,7 @@ class _JadwalCard extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: isPast
                           ? const Color(0xFFE0E0E0)
-                          : _kPrimary.withOpacity(0.12),
+                          : _kPrimary.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Icon(
@@ -422,7 +422,7 @@ class _JadwalCard extends StatelessWidget {
                   ),
                 ],
               ),
-              if (jadwal.keterangan.isNotEmpty) ...[  
+              if (jadwal.keterangan.isNotEmpty) ...[
                 const SizedBox(height: 10),
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -446,18 +446,18 @@ class _JadwalCard extends StatelessWidget {
                   ],
                 ),
               ],
-              if (!isPast) ...[  
+              if (!isPast) ...[
                 const SizedBox(height: 10),
                 Row(
                   children: [
                     Icon(Icons.notifications_active_rounded,
-                        size: 13, color: _kPrimary.withOpacity(0.7)),
+                        size: 13, color: _kPrimary.withValues(alpha: 0.7)),
                     const SizedBox(width: 4),
                     Text(
                       'Notifikasi 2 jam sebelumnya',
                       style: TextStyle(
                         fontSize: 11,
-                        color: _kPrimary.withOpacity(0.8),
+                        color: _kPrimary.withValues(alpha: 0.8),
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -490,7 +490,7 @@ class _InfoChip extends StatelessWidget {
       decoration: BoxDecoration(
         color: isPast
             ? const Color(0xFFEEEEEE)
-            : _kPrimary.withOpacity(0.08),
+            : _kPrimary.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
@@ -660,7 +660,7 @@ class _TambahJadwalSheetState extends State<_TambahJadwalSheet> {
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: _kPrimary.withOpacity(0.12),
+                      color: _kPrimary.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Icon(MdiIcons.calendarPlus,
@@ -762,9 +762,9 @@ class _TambahJadwalSheetState extends State<_TambahJadwalSheet> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: _kPrimary.withOpacity(0.07),
+                  color: _kPrimary.withValues(alpha: 0.07),
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: _kPrimary.withOpacity(0.2)),
+                  border: Border.all(color: _kPrimary.withValues(alpha: 0.2)),
                 ),
                 child: Row(
                   children: [
@@ -899,7 +899,7 @@ class _PickerButton extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 13),
         decoration: BoxDecoration(
-          color: hasValue ? _kPrimary.withOpacity(0.07) : _kBg,
+          color: hasValue ? _kPrimary.withValues(alpha: 0.07) : _kBg,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: hasValue ? _kPrimary : _kBorder,
