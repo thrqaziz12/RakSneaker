@@ -147,7 +147,7 @@ class NotificationService {
         'Notifikasi dijadwalkan untuk: '
         '\${jadwal.namaSepatu} pada \${notifTime.toString()}',
       );
-    } on Exception catch (e) {
+    } on Exception catch (_) {
       debugPrint('Gagal menjadwalkan notifikasi: \$e');
     }
   }
