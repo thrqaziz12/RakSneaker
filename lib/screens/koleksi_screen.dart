@@ -7,16 +7,19 @@
 //   - Tambah koleksi baru via bottom sheet form
 //   - Edit koleksi via bottom sheet form (pre-filled)
 //   - Hapus koleksi via dialog konfirmasi
-//   - Setiap koleksi menyimpan: gambar (multi-URL), nama, merek, harga, keterangan
+//   - Setiap koleksi menyimpan: gambar dari device (multi-foto), nama, merek,
+//     harga, keterangan
 //
 // Storage: Hive box 'koleksi'
 // Tema: konsisten dengan app (Oranye #FF6B35)
 // =============================================================================
 
+import 'dart:io';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 import '../models/koleksi_model.dart';
 
@@ -28,8 +31,6 @@ const _kTextMuted = Color(0xFF6B6B6B);
 const _kBorder = Color(0xFFE8E0DB);
 const _kError = Color(0xFFD32F2F);
 
-// ─── Helper ──────────────────────────────────────────────────────────────────
-
 String _formatRupiah(double value) {
   final parts = value.toStringAsFixed(0).split('');
   final result = StringBuffer();
@@ -39,8 +40,6 @@ String _formatRupiah(double value) {
   }
   return 'Rp ${result.toString()}';
 }
-
-// ─── Main Screen ─────────────────────────────────────────────────────────────
 
 class KoleksiScreen extends StatelessWidget {
   const KoleksiScreen({super.key});
@@ -117,7 +116,6 @@ class KoleksiScreen extends StatelessWidget {
     );
   }
 
-  // ── Buka form tambah / edit ──
   void _openForm(BuildContext context, {KoleksiModel? existing}) {
     showModalBottomSheet(
       context: context,
@@ -127,7 +125,6 @@ class KoleksiScreen extends StatelessWidget {
     );
   }
 
-  // ── Dialog konfirmasi hapus ──
   void _confirmDelete(BuildContext context, KoleksiModel item) {
     showDialog(
       context: context,
@@ -176,8 +173,6 @@ class KoleksiScreen extends StatelessWidget {
     );
   }
 }
-
-// ─── Empty State ─────────────────────────────────────────────────────────────
 
 class _EmptyState extends StatelessWidget {
   final VoidCallback onAdd;
@@ -246,8 +241,6 @@ class _EmptyState extends StatelessWidget {
   }
 }
 
-// ─── Card Koleksi ─────────────────────────────────────────────────────────────
-
 class _KoleksiCard extends StatelessWidget {
   final KoleksiModel item;
   final VoidCallback onEdit;
@@ -281,7 +274,6 @@ class _KoleksiCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ── Gambar utama ──
             ClipRRect(
               borderRadius: const BorderRadius.vertical(
                 top: Radius.circular(14),
@@ -289,28 +281,14 @@ class _KoleksiCard extends StatelessWidget {
               child: AspectRatio(
                 aspectRatio: 1.0,
                 child: hasImage
-                    ? Image.network(
-                        item.images.first,
+                    ? Image.file(
+                        File(item.images.first),
                         fit: BoxFit.cover,
                         errorBuilder: (_, _, _) => _imagePlaceholder(),
-                        loadingBuilder: (_, child, progress) {
-                          if (progress == null) return child;
-                          return Container(
-                            color: const Color(0xFFF3F0EC),
-                            child: const Center(
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: _kPrimary,
-                              ),
-                            ),
-                          );
-                        },
                       )
                     : _imagePlaceholder(),
               ),
             ),
-
-            // ── Info ──
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
@@ -350,7 +328,6 @@ class _KoleksiCard extends StatelessWidget {
                             ),
                           ),
                         ),
-                        // Tombol aksi
                         Row(
                           children: [
                             _ActionBtn(
@@ -432,8 +409,6 @@ class _ActionBtn extends StatelessWidget {
   }
 }
 
-// ─── Detail View ─────────────────────────────────────────────────────────────
-
 class _KoleksiDetail extends StatefulWidget {
   final KoleksiModel item;
   const _KoleksiDetail({required this.item});
@@ -462,7 +437,6 @@ class _KoleksiDetailState extends State<_KoleksiDetail> {
         ),
         child: Column(
           children: [
-            // Handle
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 12),
               child: Container(
@@ -479,14 +453,13 @@ class _KoleksiDetailState extends State<_KoleksiDetail> {
                 controller: ctrl,
                 padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
                 children: [
-                  // ── Gambar carousel ──
                   if (imgs.isNotEmpty) ...[
                     ClipRRect(
                       borderRadius: BorderRadius.circular(14),
                       child: AspectRatio(
                         aspectRatio: 1.2,
-                        child: Image.network(
-                          imgs[_imgIdx],
+                        child: Image.file(
+                          File(imgs[_imgIdx]),
                           fit: BoxFit.cover,
                           errorBuilder: (_, _, _) => Container(
                             color: const Color(0xFFF3F0EC),
@@ -520,8 +493,8 @@ class _KoleksiDetailState extends State<_KoleksiDetail> {
                               ),
                               child: ClipRRect(
                                 borderRadius: BorderRadius.circular(7),
-                                child: Image.network(
-                                  imgs[i],
+                                child: Image.file(
+                                  File(imgs[i]),
                                   fit: BoxFit.cover,
                                   errorBuilder: (_, _, _) => const Icon(
                                     Icons.broken_image_outlined,
@@ -550,10 +523,7 @@ class _KoleksiDetailState extends State<_KoleksiDetail> {
                         ),
                       ),
                     ),
-
                   const SizedBox(height: 20),
-
-                  // ── Info sepatu ──
                   Text(
                     item.namaSepatu,
                     style: const TextStyle(
@@ -616,8 +586,6 @@ class _KoleksiDetailState extends State<_KoleksiDetail> {
   }
 }
 
-// ─── Form Tambah / Edit ───────────────────────────────────────────────────────
-
 class _KoleksiForm extends StatefulWidget {
   final KoleksiModel? existing;
   const _KoleksiForm({this.existing});
@@ -628,11 +596,11 @@ class _KoleksiForm extends StatefulWidget {
 
 class _KoleksiFormState extends State<_KoleksiForm> {
   final _formKey = GlobalKey<FormState>();
+  final ImagePicker _picker = ImagePicker();
   late final TextEditingController _namaCtrl;
   late final TextEditingController _merekCtrl;
   late final TextEditingController _hargaCtrl;
   late final TextEditingController _ketCtrl;
-  late final TextEditingController _imgCtrl; // input URL gambar baru
   final List<String> _images = [];
 
   bool _isLoading = false;
@@ -649,7 +617,6 @@ class _KoleksiFormState extends State<_KoleksiForm> {
       text: e != null ? e.harga.toStringAsFixed(0) : '',
     );
     _ketCtrl = TextEditingController(text: e?.keterangan ?? '');
-    _imgCtrl = TextEditingController();
     if (e != null) _images.addAll(e.images);
   }
 
@@ -659,21 +626,70 @@ class _KoleksiFormState extends State<_KoleksiForm> {
     _merekCtrl.dispose();
     _hargaCtrl.dispose();
     _ketCtrl.dispose();
-    _imgCtrl.dispose();
     super.dispose();
   }
 
-  void _addImage() {
-    final url = _imgCtrl.text.trim();
-    if (url.isEmpty) return;
-    if (!url.startsWith('http://') && !url.startsWith('https://')) {
-      _showSnack('URL gambar harus dimulai dengan http:// atau https://');
-      return;
+  Future<void> _pickMultipleImages() async {
+    try {
+      final files = await _picker.pickMultiImage(imageQuality: 85);
+      if (files.isEmpty) return;
+
+      setState(() {
+        for (final file in files) {
+          if (!_images.contains(file.path)) {
+            _images.add(file.path);
+          }
+        }
+      });
+    } catch (_) {
+      _showSnack('Gagal memilih foto dari galeri');
     }
-    setState(() {
-      _images.add(url);
-      _imgCtrl.clear();
-    });
+  }
+
+  Future<void> _pickFromCamera() async {
+    try {
+      final file = await _picker.pickImage(
+        source: ImageSource.camera,
+        imageQuality: 85,
+      );
+      if (file == null) return;
+
+      setState(() {
+        if (!_images.contains(file.path)) {
+          _images.add(file.path);
+        }
+      });
+    } catch (_) {
+      _showSnack('Gagal mengambil foto dari kamera');
+    }
+  }
+
+  void _showImageSourcePicker() {
+    showModalBottomSheet(
+      context: context,
+      builder: (_) => SafeArea(
+        child: Wrap(
+          children: [
+            ListTile(
+              leading: const Icon(Icons.photo_library_rounded, color: _kPrimary),
+              title: const Text('Pilih dari galeri'),
+              onTap: () {
+                Navigator.pop(context);
+                _pickMultipleImages();
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_camera_rounded, color: _kPrimary),
+              title: const Text('Ambil dari kamera'),
+              onTap: () {
+                Navigator.pop(context);
+                _pickFromCamera();
+              },
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   void _removeImage(int index) {
@@ -693,6 +709,11 @@ class _KoleksiFormState extends State<_KoleksiForm> {
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
 
+    if (_images.isEmpty) {
+      _showSnack('Minimal pilih 1 foto sepatu');
+      return;
+    }
+
     setState(() => _isLoading = true);
 
     final box = Hive.box<KoleksiModel>('koleksi');
@@ -703,7 +724,6 @@ class _KoleksiFormState extends State<_KoleksiForm> {
         0.0;
 
     if (_isEdit) {
-      // Update existing
       final e = widget.existing!;
       e.namaSepatu = _namaCtrl.text.trim();
       e.merek = _merekCtrl.text.trim();
@@ -712,7 +732,6 @@ class _KoleksiFormState extends State<_KoleksiForm> {
       e.images = List.from(_images);
       await e.save();
     } else {
-      // Tambah baru
       final id =
           DateTime.now().millisecondsSinceEpoch.toString() +
           Random().nextInt(9999).toString();
@@ -756,7 +775,6 @@ class _KoleksiFormState extends State<_KoleksiForm> {
         padding: EdgeInsets.only(bottom: bottom),
         child: Column(
           children: [
-            // Handle
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 12),
               child: Container(
@@ -768,7 +786,6 @@ class _KoleksiFormState extends State<_KoleksiForm> {
                 ),
               ),
             ),
-            // Header
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
               child: Row(
@@ -790,7 +807,6 @@ class _KoleksiFormState extends State<_KoleksiForm> {
               ),
             ),
             const Divider(height: 1, color: _kBorder),
-            // Form
             Expanded(
               child: Form(
                 key: _formKey,
@@ -798,7 +814,6 @@ class _KoleksiFormState extends State<_KoleksiForm> {
                   controller: ctrl,
                   padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
                   children: [
-                    // ── Nama Sepatu ──
                     _FieldLabel('Nama Sepatu *'),
                     _FormField(
                       controller: _namaCtrl,
@@ -808,8 +823,6 @@ class _KoleksiFormState extends State<_KoleksiForm> {
                           : null,
                     ),
                     const SizedBox(height: 16),
-
-                    // ── Merek ──
                     _FieldLabel('Merek *'),
                     _FormField(
                       controller: _merekCtrl,
@@ -819,8 +832,6 @@ class _KoleksiFormState extends State<_KoleksiForm> {
                           : null,
                     ),
                     const SizedBox(height: 16),
-
-                    // ── Harga ──
                     _FieldLabel('Harga (Rp) *'),
                     _FormField(
                       controller: _hargaCtrl,
@@ -829,14 +840,13 @@ class _KoleksiFormState extends State<_KoleksiForm> {
                       inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                       validator: (v) {
                         if (v == null || v.trim().isEmpty) return 'Wajib diisi';
-                        if (double.tryParse(v) == null)
+                        if (double.tryParse(v) == null) {
                           return 'Masukkan angka yang valid';
+                        }
                         return null;
                       },
                     ),
                     const SizedBox(height: 16),
-
-                    // ── Keterangan ──
                     _FieldLabel('Keterangan'),
                     _FormField(
                       controller: _ketCtrl,
@@ -844,81 +854,39 @@ class _KoleksiFormState extends State<_KoleksiForm> {
                       maxLines: 3,
                     ),
                     const SizedBox(height: 20),
-
-                    // ── Gambar ──
-                    _FieldLabel('Gambar (URL)'),
+                    _FieldLabel('Foto Sepatu *'),
                     const SizedBox(height: 4),
                     Text(
-                      'Tambahkan satu atau lebih URL gambar sepatu',
+                      'Upload foto dari device. Bisa lebih dari satu dan hanya format gambar.',
                       style: TextStyle(
                         fontSize: 12,
                         color: _kTextMuted.withValues(alpha: 0.8),
                       ),
                     ),
-                    const SizedBox(height: 8),
-
-                    // Input URL + tombol tambah
+                    const SizedBox(height: 10),
                     Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Expanded(
-                          child: TextFormField(
-                            controller: _imgCtrl,
-                            decoration: InputDecoration(
-                              hintText: 'https://example.com/image.jpg',
-                              hintStyle: const TextStyle(
-                                color: _kTextMuted,
-                                fontSize: 13,
-                              ),
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 14,
-                                vertical: 12,
-                              ),
-                              filled: true,
-                              fillColor: const Color(0xFFFFF8F5),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(10),
-                                borderSide: const BorderSide(color: _kBorder),
-                              ),
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(10),
-                                borderSide: const BorderSide(color: _kBorder),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(10),
-                                borderSide: const BorderSide(
-                                  color: _kPrimary,
-                                  width: 2,
-                                ),
+                          child: OutlinedButton.icon(
+                            onPressed: _showImageSourcePicker,
+                            icon: const Icon(Icons.add_photo_alternate_rounded),
+                            label: const Text('Tambah Foto'),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: _kPrimary,
+                              side: const BorderSide(color: _kPrimary),
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
                               ),
                             ),
-                            style: const TextStyle(fontSize: 13),
-                            keyboardType: TextInputType.url,
-                            onFieldSubmitted: (_) => _addImage(),
                           ),
-                        ),
-                        const SizedBox(width: 8),
-                        ElevatedButton(
-                          onPressed: _addImage,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: _kPrimary,
-                            foregroundColor: Colors.white,
-                            minimumSize: const Size(48, 48),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            padding: EdgeInsets.zero,
-                          ),
-                          child: const Icon(Icons.add_rounded),
                         ),
                       ],
                     ),
-
-                    // Daftar gambar yang sudah ditambahkan
                     if (_images.isNotEmpty) ...[
                       const SizedBox(height: 12),
                       SizedBox(
-                        height: 80,
+                        height: 96,
                         child: ListView.separated(
                           scrollDirection: Axis.horizontal,
                           itemCount: _images.length,
@@ -926,15 +894,15 @@ class _KoleksiFormState extends State<_KoleksiForm> {
                           itemBuilder: (_, i) => Stack(
                             children: [
                               ClipRRect(
-                                borderRadius: BorderRadius.circular(8),
-                                child: Image.network(
-                                  _images[i],
-                                  width: 80,
-                                  height: 80,
+                                borderRadius: BorderRadius.circular(10),
+                                child: Image.file(
+                                  File(_images[i]),
+                                  width: 96,
+                                  height: 96,
                                   fit: BoxFit.cover,
                                   errorBuilder: (_, _, _) => Container(
-                                    width: 80,
-                                    height: 80,
+                                    width: 96,
+                                    height: 96,
                                     color: const Color(0xFFF3F0EC),
                                     child: const Icon(
                                       Icons.broken_image_outlined,
@@ -944,20 +912,20 @@ class _KoleksiFormState extends State<_KoleksiForm> {
                                 ),
                               ),
                               Positioned(
-                                top: 2,
-                                right: 2,
+                                top: 4,
+                                right: 4,
                                 child: GestureDetector(
                                   onTap: () => _removeImage(i),
                                   child: Container(
-                                    width: 20,
-                                    height: 20,
-                                    decoration: BoxDecoration(
+                                    width: 22,
+                                    height: 22,
+                                    decoration: const BoxDecoration(
                                       color: Colors.black54,
                                       shape: BoxShape.circle,
                                     ),
                                     child: const Icon(
                                       Icons.close_rounded,
-                                      size: 12,
+                                      size: 14,
                                       color: Colors.white,
                                     ),
                                   ),
@@ -968,10 +936,7 @@ class _KoleksiFormState extends State<_KoleksiForm> {
                         ),
                       ),
                     ],
-
                     const SizedBox(height: 28),
-
-                    // ── Tombol Simpan ──
                     SizedBox(
                       height: 52,
                       child: ElevatedButton(
@@ -1012,8 +977,6 @@ class _KoleksiFormState extends State<_KoleksiForm> {
     );
   }
 }
-
-// ─── Reusable Form Widgets ────────────────────────────────────────────────────
 
 class _FieldLabel extends StatelessWidget {
   final String text;
