@@ -5,6 +5,8 @@
 // Fitur:
 //   - Menampilkan sapaan dengan nama username yang sedang login
 //   - Daftar produk sepatu dari dummyjson (mens-shoes + womens-shoes)
+//   - Card menampilkan: thumbnail, title, category, price
+//   - Klik card → navigasi ke ProductDetailScreen
 //   - Loading skeleton saat data sedang diambil
 //   - Error state dengan tombol retry
 //   - Tombol logout untuk kembali ke halaman LoginScreen
@@ -22,6 +24,7 @@ import 'package:material_design_icons_flutter/material_design_icons_flutter.dart
 import '../models/product_model.dart';
 import '../services/product_service.dart';
 import 'login_screen.dart';
+import 'product_detail_screen.dart';
 
 // ---------------------------------------------------------------------------
 // Konstanta Warna — Light Sneaker Theme
@@ -69,7 +72,6 @@ class _HomeScreenState extends State<HomeScreen> {
     });
 
     try {
-      // Ambil hanya produk sepatu (mens-shoes + womens-shoes)
       final products = await _productService.fetchShoeProducts();
       setState(() {
         _products = products;
@@ -93,16 +95,9 @@ class _HomeScreenState extends State<HomeScreen> {
         onRefresh: _loadProducts,
         child: CustomScrollView(
           slivers: [
-            // ----------------------------------------------------------------
-            // Header — sapaan user
-            // ----------------------------------------------------------------
             SliverToBoxAdapter(
               child: _buildHeader(),
             ),
-
-            // ----------------------------------------------------------------
-            // Konten utama: loading / error / grid produk
-            // ----------------------------------------------------------------
             if (_isLoading)
               SliverPadding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -126,11 +121,13 @@ class _HomeScreenState extends State<HomeScreen> {
               )
             else
               SliverPadding(
-                padding:
-                    const EdgeInsets.fromLTRB(16, 8, 16, 24),
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
                 sliver: SliverGrid(
                   delegate: SliverChildBuilderDelegate(
-                    (_, index) => _ProductCard(product: _products[index]),
+                    (_, index) => _ProductCard(
+                      product: _products[index],
+                      onTap: () => _navigateToDetail(_products[index]),
+                    ),
                     childCount: _products.length,
                   ),
                   gridDelegate:
@@ -144,6 +141,15 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
           ],
         ),
+      ),
+    );
+  }
+
+  void _navigateToDetail(Product product) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ProductDetailScreen(productId: product.id),
       ),
     );
   }
@@ -229,7 +235,6 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       child: Row(
         children: [
-          // Avatar
           Container(
             width: 48,
             height: 48,
@@ -244,7 +249,6 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
           const SizedBox(width: 14),
-          // Teks sapaan
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -326,176 +330,176 @@ class _HomeScreenState extends State<HomeScreen> {
 }
 
 // ---------------------------------------------------------------------------
-// _ProductCard — card satu produk
+// _ProductCard — card satu produk di halaman home
+// Menampilkan: thumbnail, title, category, price
 // ---------------------------------------------------------------------------
 class _ProductCard extends StatelessWidget {
   final Product product;
+  final VoidCallback onTap;
 
-  const _ProductCard({required this.product});
+  const _ProductCard({required this.product, required this.onTap});
+
+  String _formatCategory(String cat) {
+    return cat
+        .replaceAll('-', ' ')
+        .split(' ')
+        .map((w) => w.isEmpty ? w : w[0].toUpperCase() + w.substring(1))
+        .join(' ');
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: kSurfaceLight,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0x1AFF6B35), width: 1),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x0AFF6B35),
-            blurRadius: 8,
-            offset: Offset(0, 2),
-          ),
-        ],
-      ),
-      clipBehavior: Clip.hardEdge,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // ---- Thumbnail ----
-          AspectRatio(
-            aspectRatio: 1.1,
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                Image.network(
-                  product.thumbnail,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => Container(
-                    color: kSurfaceAccent,
-                    child: const Icon(
-                      Icons.image_not_supported_outlined,
-                      color: kTextFaint,
-                      size: 32,
-                    ),
-                  ),
-                  loadingBuilder: (_, child, progress) {
-                    if (progress == null) return child;
-                    return Container(
-                      color: kSurfaceAccent,
-                      child: const Center(
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: kPrimaryColor,
-                        ),
-                      ),
-                    );
-                  },
-                ),
-                // Badge diskon
-                if (product.discountPercentage > 0)
-                  Positioned(
-                    top: 8,
-                    right: 8,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 6, vertical: 3),
-                      decoration: BoxDecoration(
-                        color: kPrimaryColor,
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Text(
-                        '-${product.discountPercentage.toStringAsFixed(0)}%',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ),
-              ],
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        decoration: BoxDecoration(
+          color: kSurfaceLight,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: const Color(0x1AFF6B35), width: 1),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x0AFF6B35),
+              blurRadius: 8,
+              offset: Offset(0, 2),
             ),
-          ),
-
-          // ---- Info ----
-          Padding(
-            padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Brand
-                Text(
-                  (product.brand).toUpperCase(),
-                  style: const TextStyle(
-                    color: kPrimaryColor,
-                    fontSize: 10,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 0.5,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 2),
-                // Nama produk
-                Text(
-                  product.title,
-                  style: const TextStyle(
-                    color: kTextPrimary,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    height: 1.3,
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 6),
-                // Rating
-                Row(
-                  children: [
-                    const Icon(
-                      Icons.star_rounded,
-                      color: Color(0xFFFFC107),
-                      size: 12,
-                    ),
-                    const SizedBox(width: 3),
-                    Text(
-                      product.rating.toStringAsFixed(1),
-                      style: const TextStyle(
-                        color: kTextMuted,
-                        fontSize: 11,
+          ],
+        ),
+        clipBehavior: Clip.hardEdge,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // ---- Thumbnail ----
+            AspectRatio(
+              aspectRatio: 1.1,
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  Image.network(
+                    product.thumbnail,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => Container(
+                      color: kSurfaceAccent,
+                      child: const Icon(
+                        Icons.image_not_supported_outlined,
+                        color: kTextFaint,
+                        size: 32,
                       ),
                     ),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                // Harga
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Flexible(
-                      child: Text(
-                        '\$${product.discountedPrice.toStringAsFixed(0)}',
-                        style: const TextStyle(
-                          color: kPrimaryDark,
-                          fontSize: 13,
-                          fontWeight: FontWeight.bold,
+                    loadingBuilder: (_, child, progress) {
+                      if (progress == null) return child;
+                      return Container(
+                        color: kSurfaceAccent,
+                        child: const Center(
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: kPrimaryColor,
+                          ),
                         ),
-                        overflow: TextOverflow.ellipsis,
+                      );
+                    },
+                  ),
+                  if (product.discountPercentage > 0)
+                    Positioned(
+                      top: 8,
+                      right: 8,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 6, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: kPrimaryColor,
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          '-${product.discountPercentage.toStringAsFixed(0)}%',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
                     ),
-                    if (product.discountPercentage > 0) ...[
-                      const SizedBox(width: 4),
+                ],
+              ),
+            ),
+
+            // ---- Info: title, category, price ----
+            Padding(
+              padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Title
+                  Text(
+                    product.title,
+                    style: const TextStyle(
+                      color: kTextPrimary,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      height: 1.3,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 4),
+                  // Category Badge
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: kSurfaceAccent,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      _formatCategory(product.category),
+                      style: const TextStyle(
+                        color: kPrimaryColor,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  // Price
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
                       Flexible(
                         child: Text(
-                          '\$${product.price.toStringAsFixed(0)}',
+                          '\$${product.discountedPrice.toStringAsFixed(0)}',
                           style: const TextStyle(
-                            color: kTextFaint,
-                            fontSize: 10,
-                            decoration: TextDecoration.lineThrough,
+                            color: kPrimaryDark,
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
                           ),
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
+                      if (product.discountPercentage > 0) ...[
+                        const SizedBox(width: 4),
+                        Flexible(
+                          child: Text(
+                            '\$${product.price.toStringAsFixed(0)}',
+                            style: const TextStyle(
+                              color: kTextFaint,
+                              fontSize: 10,
+                              decoration: TextDecoration.lineThrough,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
                     ],
-                  ],
-                ),
-              ],
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -546,7 +550,6 @@ class _SkeletonCardState extends State<_SkeletonCard>
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Gambar placeholder
               AspectRatio(
                 aspectRatio: 1.1,
                 child: Container(
@@ -559,19 +562,18 @@ class _SkeletonCardState extends State<_SkeletonCard>
                   ),
                 ),
               ),
-              // Teks placeholder
               Padding(
                 padding: const EdgeInsets.all(10),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    _bar(0.5, 8),
-                    const SizedBox(height: 6),
                     _bar(1.0, 11),
                     const SizedBox(height: 4),
                     _bar(0.7, 11),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 6),
+                    _bar(0.5, 14),
+                    const SizedBox(height: 4),
                     _bar(0.4, 13),
                   ],
                 ),

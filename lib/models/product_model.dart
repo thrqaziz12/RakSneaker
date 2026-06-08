@@ -3,6 +3,29 @@
 // Model data produk dari API https://dummyjson.com/products
 // =============================================================================
 
+class ProductReview {
+  final String reviewerName;
+  final double rating;
+  final String comment;
+  final String date;
+
+  const ProductReview({
+    required this.reviewerName,
+    required this.rating,
+    required this.comment,
+    required this.date,
+  });
+
+  factory ProductReview.fromJson(Map<String, dynamic> json) {
+    return ProductReview(
+      reviewerName: json['reviewerName'] as String? ?? 'Anonymous',
+      rating: (json['rating'] as num?)?.toDouble() ?? 0.0,
+      comment: json['comment'] as String? ?? '',
+      date: json['date'] as String? ?? '',
+    );
+  }
+}
+
 class Product {
   final int id;
   final String title;
@@ -15,6 +38,7 @@ class Product {
   final String category;
   final String thumbnail;
   final List<String> images;
+  final List<ProductReview> reviews;
 
   const Product({
     required this.id,
@@ -28,6 +52,7 @@ class Product {
     required this.category,
     required this.thumbnail,
     required this.images,
+    this.reviews = const [],
   });
 
   factory Product.fromJson(Map<String, dynamic> json) {
@@ -45,6 +70,9 @@ class Product {
       thumbnail: json['thumbnail'] as String? ?? '',
       images: (json['images'] as List<dynamic>? ?? [])
           .map((e) => e as String)
+          .toList(),
+      reviews: (json['reviews'] as List<dynamic>? ?? [])
+          .map((e) => ProductReview.fromJson(e as Map<String, dynamic>))
           .toList(),
     );
   }
