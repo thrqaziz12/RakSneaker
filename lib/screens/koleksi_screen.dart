@@ -20,13 +20,13 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 import '../models/koleksi_model.dart';
 
-const _kPrimary    = Color(0xFFFF6B35);
-const _kPrimaryBg  = Color(0xFFFFF8F5);
-const _kSurface    = Color(0xFFFFFFFF);
-const _kTextPri    = Color(0xFF1A1A1A);
-const _kTextMuted  = Color(0xFF6B6B6B);
-const _kBorder     = Color(0xFFE8E0DB);
-const _kError      = Color(0xFFD32F2F);
+const _kPrimary = Color(0xFFFF6B35);
+const _kPrimaryBg = Color(0xFFFFF8F5);
+const _kSurface = Color(0xFFFFFFFF);
+const _kTextPri = Color(0xFF1A1A1A);
+const _kTextMuted = Color(0xFF6B6B6B);
+const _kBorder = Color(0xFFE8E0DB);
+const _kError = Color(0xFFD32F2F);
 
 // ─── Helper ──────────────────────────────────────────────────────────────────
 
@@ -82,9 +82,7 @@ class KoleksiScreen extends StatelessWidget {
             ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
           if (items.isEmpty) {
-            return _EmptyState(
-              onAdd: () => _openForm(context, existing: null),
-            );
+            return _EmptyState(onAdd: () => _openForm(context, existing: null));
           }
 
           return GridView.builder(
@@ -232,8 +230,10 @@ class _EmptyState extends StatelessWidget {
               style: ElevatedButton.styleFrom(
                 backgroundColor: _kPrimary,
                 foregroundColor: Colors.white,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 14,
+                ),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
@@ -283,15 +283,16 @@ class _KoleksiCard extends StatelessWidget {
           children: [
             // ── Gambar utama ──
             ClipRRect(
-              borderRadius:
-                  const BorderRadius.vertical(top: Radius.circular(14)),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(14),
+              ),
               child: AspectRatio(
                 aspectRatio: 1.0,
                 child: hasImage
                     ? Image.network(
                         item.images.first,
                         fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => _imagePlaceholder(),
+                        errorBuilder: (_, _, _) => _imagePlaceholder(),
                         loadingBuilder: (_, child, progress) {
                           if (progress == null) return child;
                           return Container(
@@ -331,10 +332,7 @@ class _KoleksiCard extends StatelessWidget {
                       item.merek,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 11,
-                        color: _kTextMuted,
-                      ),
+                      style: const TextStyle(fontSize: 11, color: _kTextMuted),
                     ),
                     const Spacer(),
                     Row(
@@ -490,7 +488,7 @@ class _KoleksiDetailState extends State<_KoleksiDetail> {
                         child: Image.network(
                           imgs[_imgIdx],
                           fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => Container(
+                          errorBuilder: (_, _, _) => Container(
                             color: const Color(0xFFF3F0EC),
                             child: Icon(
                               MdiIcons.shoeSneaker,
@@ -508,7 +506,7 @@ class _KoleksiDetailState extends State<_KoleksiDetail> {
                         child: ListView.separated(
                           scrollDirection: Axis.horizontal,
                           itemCount: imgs.length,
-                          separatorBuilder: (_, __) => const SizedBox(width: 8),
+                          separatorBuilder: (_, _) => const SizedBox(width: 8),
                           itemBuilder: (_, i) => GestureDetector(
                             onTap: () => setState(() => _imgIdx = i),
                             child: Container(
@@ -516,8 +514,7 @@ class _KoleksiDetailState extends State<_KoleksiDetail> {
                               decoration: BoxDecoration(
                                 borderRadius: BorderRadius.circular(8),
                                 border: Border.all(
-                                  color:
-                                      _imgIdx == i ? _kPrimary : _kBorder,
+                                  color: _imgIdx == i ? _kPrimary : _kBorder,
                                   width: _imgIdx == i ? 2 : 1,
                                 ),
                               ),
@@ -526,7 +523,7 @@ class _KoleksiDetailState extends State<_KoleksiDetail> {
                                 child: Image.network(
                                   imgs[i],
                                   fit: BoxFit.cover,
-                                  errorBuilder: (_, __, ___) => const Icon(
+                                  errorBuilder: (_, _, _) => const Icon(
                                     Icons.broken_image_outlined,
                                     size: 24,
                                     color: _kTextMuted,
@@ -568,10 +565,7 @@ class _KoleksiDetailState extends State<_KoleksiDetail> {
                   const SizedBox(height: 4),
                   Text(
                     item.merek,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      color: _kTextMuted,
-                    ),
+                    style: const TextStyle(fontSize: 14, color: _kTextMuted),
                   ),
                   const SizedBox(height: 12),
                   Container(
@@ -649,13 +643,13 @@ class _KoleksiFormState extends State<_KoleksiForm> {
   void initState() {
     super.initState();
     final e = widget.existing;
-    _namaCtrl  = TextEditingController(text: e?.namaSepatu  ?? '');
-    _merekCtrl = TextEditingController(text: e?.merek       ?? '');
+    _namaCtrl = TextEditingController(text: e?.namaSepatu ?? '');
+    _merekCtrl = TextEditingController(text: e?.merek ?? '');
     _hargaCtrl = TextEditingController(
       text: e != null ? e.harga.toStringAsFixed(0) : '',
     );
-    _ketCtrl   = TextEditingController(text: e?.keterangan  ?? '');
-    _imgCtrl   = TextEditingController();
+    _ketCtrl = TextEditingController(text: e?.keterangan ?? '');
+    _imgCtrl = TextEditingController();
     if (e != null) _images.addAll(e.images);
   }
 
@@ -702,23 +696,25 @@ class _KoleksiFormState extends State<_KoleksiForm> {
     setState(() => _isLoading = true);
 
     final box = Hive.box<KoleksiModel>('koleksi');
-    final harga = double.tryParse(
+    final harga =
+        double.tryParse(
           _hargaCtrl.text.replaceAll('.', '').replaceAll(',', '.'),
         ) ??
         0.0;
 
     if (_isEdit) {
       // Update existing
-      final e         = widget.existing!;
-      e.namaSepatu    = _namaCtrl.text.trim();
-      e.merek         = _merekCtrl.text.trim();
-      e.harga         = harga;
-      e.keterangan    = _ketCtrl.text.trim();
-      e.images        = List.from(_images);
+      final e = widget.existing!;
+      e.namaSepatu = _namaCtrl.text.trim();
+      e.merek = _merekCtrl.text.trim();
+      e.harga = harga;
+      e.keterangan = _ketCtrl.text.trim();
+      e.images = List.from(_images);
       await e.save();
     } else {
       // Tambah baru
-      final id = DateTime.now().millisecondsSinceEpoch.toString() +
+      final id =
+          DateTime.now().millisecondsSinceEpoch.toString() +
           Random().nextInt(9999).toString();
       final koleksi = KoleksiModel(
         id: id,
@@ -736,7 +732,9 @@ class _KoleksiFormState extends State<_KoleksiForm> {
     if (mounted) {
       Navigator.pop(context);
       _showSnack(
-        _isEdit ? 'Koleksi berhasil diperbarui' : 'Koleksi berhasil ditambahkan',
+        _isEdit
+            ? 'Koleksi berhasil diperbarui'
+            : 'Koleksi berhasil ditambahkan',
       );
     }
   }
@@ -805,8 +803,9 @@ class _KoleksiFormState extends State<_KoleksiForm> {
                     _FormField(
                       controller: _namaCtrl,
                       hint: 'e.g. Air Jordan 1 Retro High',
-                      validator: (v) =>
-                          (v == null || v.trim().isEmpty) ? 'Wajib diisi' : null,
+                      validator: (v) => (v == null || v.trim().isEmpty)
+                          ? 'Wajib diisi'
+                          : null,
                     ),
                     const SizedBox(height: 16),
 
@@ -815,8 +814,9 @@ class _KoleksiFormState extends State<_KoleksiForm> {
                     _FormField(
                       controller: _merekCtrl,
                       hint: 'e.g. Nike, Adidas, New Balance',
-                      validator: (v) =>
-                          (v == null || v.trim().isEmpty) ? 'Wajib diisi' : null,
+                      validator: (v) => (v == null || v.trim().isEmpty)
+                          ? 'Wajib diisi'
+                          : null,
                     ),
                     const SizedBox(height: 16),
 
@@ -826,12 +826,11 @@ class _KoleksiFormState extends State<_KoleksiForm> {
                       controller: _hargaCtrl,
                       hint: 'e.g. 1500000',
                       keyboardType: TextInputType.number,
-                      inputFormatters: [
-                        FilteringTextInputFormatter.digitsOnly,
-                      ],
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                       validator: (v) {
                         if (v == null || v.trim().isEmpty) return 'Wajib diisi';
-                        if (double.tryParse(v) == null) return 'Masukkan angka yang valid';
+                        if (double.tryParse(v) == null)
+                          return 'Masukkan angka yang valid';
                         return null;
                       },
                     ),
@@ -923,8 +922,7 @@ class _KoleksiFormState extends State<_KoleksiForm> {
                         child: ListView.separated(
                           scrollDirection: Axis.horizontal,
                           itemCount: _images.length,
-                          separatorBuilder: (_, __) =>
-                              const SizedBox(width: 8),
+                          separatorBuilder: (_, _) => const SizedBox(width: 8),
                           itemBuilder: (_, i) => Stack(
                             children: [
                               ClipRRect(
@@ -934,7 +932,7 @@ class _KoleksiFormState extends State<_KoleksiForm> {
                                   width: 80,
                                   height: 80,
                                   fit: BoxFit.cover,
-                                  errorBuilder: (_, __, ___) => Container(
+                                  errorBuilder: (_, _, _) => Container(
                                     width: 80,
                                     height: 80,
                                     color: const Color(0xFFF3F0EC),
