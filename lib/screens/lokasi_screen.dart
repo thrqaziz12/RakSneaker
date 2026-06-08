@@ -31,9 +31,7 @@ LocationSettings _buildLocationSettings() {
       pauseLocationUpdatesAutomatically: true,
     );
   } else {
-    return const LocationSettings(
-      accuracy: LocationAccuracy.high,
-    );
+    return const LocationSettings(accuracy: LocationAccuracy.high);
   }
 }
 
@@ -114,7 +112,9 @@ class _LokasiScreenState extends State<LokasiScreen> {
       // Cek service geolocation
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
-        _tampilkanPesan('Layanan lokasi dinonaktifkan. Aktifkan GPS terlebih dahulu.');
+        _tampilkanPesan(
+          'Layanan lokasi dinonaktifkan. Aktifkan GPS terlebih dahulu.',
+        );
         setState(() => _loadingLokasi = false);
         return;
       }
@@ -131,7 +131,8 @@ class _LokasiScreenState extends State<LokasiScreen> {
       }
       if (izin == LocationPermission.deniedForever) {
         _tampilkanPesan(
-            'Izin lokasi ditolak permanen. Buka Pengaturan untuk mengaktifkan.');
+          'Izin lokasi ditolak permanen. Buka Pengaturan untuk mengaktifkan.',
+        );
         setState(() => _loadingLokasi = false);
         return;
       }
@@ -214,10 +215,7 @@ class _LokasiScreenState extends State<LokasiScreen> {
         ],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1),
-          child: Container(
-            height: 1,
-            color: kBorderColor,
-          ),
+          child: Container(height: 1, color: kBorderColor),
         ),
       ),
       body: Column(
@@ -265,11 +263,14 @@ class _LokasiScreenState extends State<LokasiScreen> {
                                     color: Colors.blue,
                                     shape: BoxShape.circle,
                                     border: Border.all(
-                                        color: Colors.white, width: 3),
+                                      color: Colors.white,
+                                      width: 3,
+                                    ),
                                     boxShadow: [
                                       BoxShadow(
-                                        color: Colors.blue
-                                            .withValues(alpha: 0.4),
+                                        color: Colors.blue.withValues(
+                                          alpha: 0.4,
+                                        ),
                                         blurRadius: 8,
                                         spreadRadius: 4,
                                       ),
@@ -279,7 +280,9 @@ class _LokasiScreenState extends State<LokasiScreen> {
                                 const SizedBox(height: 2),
                                 Container(
                                   padding: const EdgeInsets.symmetric(
-                                      horizontal: 4, vertical: 2),
+                                    horizontal: 4,
+                                    vertical: 2,
+                                  ),
                                   decoration: BoxDecoration(
                                     color: Colors.blue,
                                     borderRadius: BorderRadius.circular(4),
@@ -323,7 +326,8 @@ class _LokasiScreenState extends State<LokasiScreen> {
                                       boxShadow: [
                                         BoxShadow(
                                           color: kPrimaryColor.withValues(
-                                              alpha: dipilih ? 0.5 : 0.2),
+                                            alpha: dipilih ? 0.5 : 0.2,
+                                          ),
                                           blurRadius: dipilih ? 12 : 6,
                                           spreadRadius: dipilih ? 2 : 0,
                                         ),
@@ -352,7 +356,9 @@ class _LokasiScreenState extends State<LokasiScreen> {
                   right: 4,
                   child: Container(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 6, vertical: 2),
+                      horizontal: 6,
+                      vertical: 2,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.white.withValues(alpha: 0.85),
                       borderRadius: BorderRadius.circular(4),
@@ -384,10 +390,7 @@ class _LokasiScreenState extends State<LokasiScreen> {
           ),
 
           // ── Divider ─────────────────────────────────────────────────────
-          Container(
-            height: 1,
-            color: kBorderColor,
-          ),
+          Container(height: 1, color: kBorderColor),
 
           // ── Daftar toko horizontal di bawah ─────────────────────────────
           Container(
@@ -464,7 +467,7 @@ class _LokasiScreenState extends State<LokasiScreen> {
                               Text(
                                 toko.alamat,
                                 style: const TextStyle(
-                                  fontSize: 11,
+                                  fontSize: 10,
                                   color: kTextMuted,
                                 ),
                                 maxLines: 2,
@@ -475,7 +478,7 @@ class _LokasiScreenState extends State<LokasiScreen> {
                                 children: [
                                   const Icon(
                                     Icons.access_time_rounded,
-                                    size: 11,
+                                    size: 8,
                                     color: kTextMuted,
                                   ),
                                   const SizedBox(width: 3),
@@ -483,7 +486,7 @@ class _LokasiScreenState extends State<LokasiScreen> {
                                     child: Text(
                                       toko.jamBuka,
                                       style: const TextStyle(
-                                        fontSize: 10,
+                                        fontSize: 8,
                                         color: kTextMuted,
                                       ),
                                       maxLines: 1,
@@ -599,14 +602,16 @@ class _DetailTokoCard extends StatelessWidget {
               const SizedBox(height: 2),
               Row(
                 children: [
-                  const Icon(Icons.location_on_rounded,
-                      size: 12, color: kTextMuted),
+                  const Icon(
+                    Icons.location_on_rounded,
+                    size: 12,
+                    color: kTextMuted,
+                  ),
                   const SizedBox(width: 3),
                   Expanded(
                     child: Text(
                       toko.alamat,
-                      style:
-                          const TextStyle(fontSize: 12, color: kTextMuted),
+                      style: const TextStyle(fontSize: 12, color: kTextMuted),
                     ),
                   ),
                 ],
@@ -614,26 +619,26 @@ class _DetailTokoCard extends StatelessWidget {
               const SizedBox(height: 2),
               Row(
                 children: [
-                  const Icon(Icons.access_time_rounded,
-                      size: 12, color: kTextMuted),
+                  const Icon(
+                    Icons.access_time_rounded,
+                    size: 12,
+                    color: kTextMuted,
+                  ),
                   const SizedBox(width: 3),
                   Text(
                     toko.jamBuka,
-                    style:
-                        const TextStyle(fontSize: 12, color: kTextMuted),
+                    style: const TextStyle(fontSize: 12, color: kTextMuted),
                   ),
                 ],
               ),
               const SizedBox(height: 2),
               Row(
                 children: [
-                  const Icon(Icons.phone_rounded,
-                      size: 12, color: kTextMuted),
+                  const Icon(Icons.phone_rounded, size: 12, color: kTextMuted),
                   const SizedBox(width: 3),
                   Text(
                     toko.telepon,
-                    style:
-                        const TextStyle(fontSize: 12, color: kTextMuted),
+                    style: const TextStyle(fontSize: 12, color: kTextMuted),
                   ),
                 ],
               ),
