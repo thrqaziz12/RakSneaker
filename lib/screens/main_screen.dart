@@ -6,7 +6,8 @@
 //   0 - Home     : Beranda koleksi sneaker
 //   1 - Koleksi  : Kelola koleksi sepatu pribadi (tambah/edit/hapus)
 //   2 - Jadwal   : Jadwal perawatan sepatu + local notification
-//   3 - Profile  : Info akun + menu Sidik Jari
+//   3 - Lokasi   : Peta toko sepatu (OpenStreetMap + Geolocation)
+//   4 - Profile  : Info akun + menu Sidik Jari
 //
 // Tema: Light Mode Sneaker — Oranye #FF6B35
 // =============================================================================
@@ -16,6 +17,7 @@ import 'package:material_design_icons_flutter/material_design_icons_flutter.dart
 import 'home_screen.dart';
 import 'koleksi_screen.dart';
 import 'jadwal_screen.dart';
+import 'lokasi_screen.dart';
 import 'profile_screen.dart';
 
 const kPrimaryColor   = Color(0xFFFF6B35);
@@ -46,6 +48,7 @@ class _MainScreenState extends State<MainScreen>
       HomeScreen(username: widget.username),
       const KoleksiScreen(),
       const JadwalScreen(),
+      const LokasiScreen(),
       ProfileScreen(username: widget.username),
     ];
   }
@@ -78,10 +81,10 @@ class _MainScreenState extends State<MainScreen>
           selectedItemColor: kPrimaryColor,
           unselectedItemColor: kTextMuted,
           selectedLabelStyle: const TextStyle(
-            fontSize: 12,
+            fontSize: 11,
             fontWeight: FontWeight.w600,
           ),
-          unselectedLabelStyle: const TextStyle(fontSize: 12),
+          unselectedLabelStyle: const TextStyle(fontSize: 11),
           elevation: 0,
           type: BottomNavigationBarType.fixed,
           items: [
@@ -98,30 +101,42 @@ class _MainScreenState extends State<MainScreen>
               label: 'Home',
             ),
             // ── Tab 1: Koleksi ──
-            BottomNavigationBarItem(
-              icon: const Padding(
+            const BottomNavigationBarItem(
+              icon: Padding(
                 padding: EdgeInsets.only(bottom: 2),
                 child: Icon(Icons.collections_bookmark_outlined),
               ),
-              activeIcon: const Padding(
+              activeIcon: Padding(
                 padding: EdgeInsets.only(bottom: 2),
                 child: Icon(Icons.collections_bookmark_rounded),
               ),
               label: 'Koleksi',
             ),
             // ── Tab 2: Jadwal ──
-            BottomNavigationBarItem(
-              icon: const Padding(
+            const BottomNavigationBarItem(
+              icon: Padding(
                 padding: EdgeInsets.only(bottom: 2),
                 child: Icon(Icons.calendar_month_outlined),
               ),
-              activeIcon: const Padding(
+              activeIcon: Padding(
                 padding: EdgeInsets.only(bottom: 2),
                 child: Icon(Icons.calendar_month_rounded),
               ),
               label: 'Jadwal',
             ),
-            // ── Tab 3: Profile ──
+            // ── Tab 3: Lokasi ──
+            const BottomNavigationBarItem(
+              icon: Padding(
+                padding: EdgeInsets.only(bottom: 2),
+                child: Icon(Icons.location_on_outlined),
+              ),
+              activeIcon: Padding(
+                padding: EdgeInsets.only(bottom: 2),
+                child: Icon(Icons.location_on_rounded),
+              ),
+              label: 'Lokasi',
+            ),
+            // ── Tab 4: Profile ──
             const BottomNavigationBarItem(
               icon: Padding(
                 padding: EdgeInsets.only(bottom: 2),

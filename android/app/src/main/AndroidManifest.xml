@@ -1,21 +1,27 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- Permission untuk sensor biometrik (local_auth) -->
+    <!-- Izin internet untuk tile OpenStreetMap -->
+    <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- Izin geolocation -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+    <!-- Izin untuk USE_BIOMETRIC & USE_FINGERPRINT (local_auth) -->
     <uses-permission android:name="android.permission.USE_BIOMETRIC"/>
     <uses-permission android:name="android.permission.USE_FINGERPRINT"/>
-
-    <!-- Permission untuk notifikasi (Bug #1) -->
-    <!-- POST_NOTIFICATIONS wajib di Android 13+ (API 33+) -->
-    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
-    <!-- Agar notifikasi terjadwal tetap hidup setelah reboot -->
+    <!-- Izin notifikasi -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
-    <!-- USE_EXACT_ALARM: izin exact alarm API 33+, tidak perlu user approval dialog -->
-    <uses-permission android:name="android.permission.USE_EXACT_ALARM"/>
+    <uses-permission android:name="android.permission.VIBRATE"/>
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    <!-- Izin kamera untuk image_picker -->
+    <uses-permission android:name="android.permission.CAMERA"/>
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
 
     <application
-        android:label="raksneaker"
+        android:label="RakSneaker"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/ic_launcher"
+        android:enableOnBackInvokedCallback="true">
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -38,6 +44,8 @@
             android:name="flutterEmbedding"
             android:value="2" />
     </application>
+    <!-- Required to query activities that can process text, see:
+         https://developer.android.com/training/package-visibility -->
     <queries>
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT"/>
