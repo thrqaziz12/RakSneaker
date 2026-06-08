@@ -4,6 +4,7 @@
 // dan sensor geolocation untuk posisi pengguna saat ini.
 // =============================================================================
 
+import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
@@ -15,6 +16,26 @@ const kSurfaceLight = Color(0xFFFFFFFF);
 const kTextPrimary = Color(0xFF1A1A1A);
 const kTextMuted = Color(0xFF6B6B6B);
 const kBorderColor = Color(0xFFE8E0DB);
+
+// ── Buat LocationSettings sesuai platform ───────────────────────────────────
+LocationSettings _buildLocationSettings() {
+  if (Platform.isAndroid) {
+    return AndroidSettings(
+      accuracy: LocationAccuracy.high,
+      forceLocationManager: false,
+    );
+  } else if (Platform.isIOS || Platform.isMacOS) {
+    return AppleSettings(
+      accuracy: LocationAccuracy.high,
+      activityType: ActivityType.other,
+      pauseLocationUpdatesAutomatically: true,
+    );
+  } else {
+    return const LocationSettings(
+      accuracy: LocationAccuracy.high,
+    );
+  }
+}
 
 // ── Data toko sepatu (sesuaikan koordinat sesuai lokasi nyata) ──────────────
 class TokoSepatu {
@@ -109,14 +130,15 @@ class _LokasiScreenState extends State<LokasiScreen> {
         }
       }
       if (izin == LocationPermission.deniedForever) {
-        _tampilkanPesan('Izin lokasi ditolak permanen. Buka Pengaturan untuk mengaktifkan.');
+        _tampilkanPesan(
+            'Izin lokasi ditolak permanen. Buka Pengaturan untuk mengaktifkan.');
         setState(() => _loadingLokasi = false);
         return;
       }
 
-      // Dapatkan posisi
+      // Dapatkan posisi — gunakan LocationSettings sesuai platform
       final posisi = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
+        locationSettings: _buildLocationSettings(),
       );
       final latLng = LatLng(posisi.latitude, posisi.longitude);
       setState(() {
@@ -219,7 +241,8 @@ class _LokasiScreenState extends State<LokasiScreen> {
                   children: [
                     // Layer tile OpenStreetMap
                     TileLayer(
-                      urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                      urlTemplate:
+                          'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                       userAgentPackageName: 'com.raksneaker.app',
                       maxZoom: 19,
                     ),
@@ -245,7 +268,8 @@ class _LokasiScreenState extends State<LokasiScreen> {
                                         color: Colors.white, width: 3),
                                     boxShadow: [
                                       BoxShadow(
-                                        color: Colors.blue.withValues(alpha: 0.4),
+                                        color: Colors.blue
+                                            .withValues(alpha: 0.4),
                                         blurRadius: 8,
                                         spreadRadius: 4,
                                       ),
@@ -298,8 +322,8 @@ class _LokasiScreenState extends State<LokasiScreen> {
                                       ),
                                       boxShadow: [
                                         BoxShadow(
-                                          color: kPrimaryColor
-                                              .withValues(alpha: dipilih ? 0.5 : 0.2),
+                                          color: kPrimaryColor.withValues(
+                                              alpha: dipilih ? 0.5 : 0.2),
                                           blurRadius: dipilih ? 12 : 6,
                                           spreadRadius: dipilih ? 2 : 0,
                                         ),
@@ -307,7 +331,9 @@ class _LokasiScreenState extends State<LokasiScreen> {
                                     ),
                                     child: Icon(
                                       Icons.storefront_rounded,
-                                      color: dipilih ? Colors.white : kPrimaryColor,
+                                      color: dipilih
+                                          ? Colors.white
+                                          : kPrimaryColor,
                                       size: dipilih ? 22 : 18,
                                     ),
                                   ),
@@ -325,8 +351,8 @@ class _LokasiScreenState extends State<LokasiScreen> {
                   bottom: 4,
                   right: 4,
                   child: Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 6, vertical: 2),
                     decoration: BoxDecoration(
                       color: Colors.white.withValues(alpha: 0.85),
                       borderRadius: BorderRadius.circular(4),
@@ -414,9 +440,7 @@ class _LokasiScreenState extends State<LokasiScreen> {
                                 children: [
                                   Icon(
                                     Icons.storefront_rounded,
-                                    color: dipilih
-                                        ? kPrimaryColor
-                                        : kTextMuted,
+                                    color: dipilih ? kPrimaryColor : kTextMuted,
                                     size: 16,
                                   ),
                                   const SizedBox(width: 6),
@@ -486,8 +510,7 @@ class _LokasiScreenState extends State<LokasiScreen> {
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
               decoration: BoxDecoration(
                 color: kSurfaceLight,
-                border: Border(
-                    top: BorderSide(color: kBorderColor)),
+                border: Border(top: BorderSide(color: kBorderColor)),
               ),
               child: _DetailTokoCard(toko: _tokoDipilih!),
             ),
@@ -582,8 +605,8 @@ class _DetailTokoCard extends StatelessWidget {
                   Expanded(
                     child: Text(
                       toko.alamat,
-                      style: const TextStyle(
-                          fontSize: 12, color: kTextMuted),
+                      style:
+                          const TextStyle(fontSize: 12, color: kTextMuted),
                     ),
                   ),
                 ],
