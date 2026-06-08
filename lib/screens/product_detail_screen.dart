@@ -64,7 +64,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     });
     try {
       final uri = Uri.parse(
-          'https://dummyjson.com/products/${widget.productId}');
+        'https://dummyjson.com/products/${widget.productId}',
+      );
       final response = await http.get(uri);
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body) as Map<String, dynamic>;
@@ -95,8 +96,18 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     try {
       final dt = DateTime.parse(iso);
       const months = [
-        'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
-        'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'
+        'Jan',
+        'Feb',
+        'Mar',
+        'Apr',
+        'Mei',
+        'Jun',
+        'Jul',
+        'Agu',
+        'Sep',
+        'Okt',
+        'Nov',
+        'Des',
       ];
       return '${dt.day} ${months[dt.month - 1]} ${dt.year}';
     } catch (_) {
@@ -111,8 +122,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       body: _isLoading
           ? _buildLoading()
           : _errorMessage != null
-              ? _buildError()
-              : _buildContent(),
+          ? _buildError()
+          : _buildContent(),
     );
   }
 
@@ -120,9 +131,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   // Loading
   // --------------------------------------------------------------------------
   Widget _buildLoading() {
-    return const Center(
-      child: CircularProgressIndicator(color: _kPrimary),
-    );
+    return const Center(child: CircularProgressIndicator(color: _kPrimary));
   }
 
   // --------------------------------------------------------------------------
@@ -135,8 +144,11 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.error_outline_rounded,
-                color: _kTextFaint, size: 56),
+            const Icon(
+              Icons.error_outline_rounded,
+              color: _kTextFaint,
+              size: 56,
+            ),
             const SizedBox(height: 16),
             Text(
               _errorMessage ?? 'Terjadi kesalahan.',
@@ -156,8 +168,10 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
             const SizedBox(height: 12),
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Kembali',
-                  style: TextStyle(color: _kTextMuted)),
+              child: const Text(
+                'Kembali',
+                style: TextStyle(color: _kTextMuted),
+              ),
             ),
           ],
         ),
@@ -194,8 +208,11 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                   ),
                 ],
               ),
-              child: const Icon(Icons.arrow_back_ios_new_rounded,
-                  color: _kTextPrimary, size: 18),
+              child: const Icon(
+                Icons.arrow_back_ios_new_rounded,
+                color: _kTextPrimary,
+                size: 18,
+              ),
             ),
           ),
           flexibleSpace: FlexibleSpaceBar(
@@ -213,8 +230,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Dots indikator gambar
-                if (p.images.length > 1)
-                  _buildImageDots(p.images.length),
+                if (p.images.length > 1) _buildImageDots(p.images.length),
 
                 Padding(
                   padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
@@ -227,7 +243,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                           if (p.brand.isNotEmpty && p.brand != '-') ...[
                             Container(
                               padding: const EdgeInsets.symmetric(
-                                  horizontal: 8, vertical: 3),
+                                horizontal: 8,
+                                vertical: 3,
+                              ),
                               decoration: BoxDecoration(
                                 color: _kPrimary,
                                 borderRadius: BorderRadius.circular(6),
@@ -246,12 +264,15 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                           ],
                           Container(
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 8, vertical: 3),
+                              horizontal: 8,
+                              vertical: 3,
+                            ),
                             decoration: BoxDecoration(
                               color: _kSurfaceAccent,
                               borderRadius: BorderRadius.circular(6),
                               border: Border.all(
-                                  color: _kPrimary.withValues(alpha: 0.3)),
+                                color: _kPrimary.withValues(alpha: 0.3),
+                              ),
                             ),
                             child: Text(
                               _formatCategory(p.category),
@@ -285,15 +306,16 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                         children: [
                           ...List.generate(5, (i) {
                             final full = i < p.rating.floor();
-                            final half = !full &&
+                            final half =
+                                !full &&
                                 i < p.rating &&
                                 (p.rating - p.rating.floor()) >= 0.5;
                             return Icon(
                               full
                                   ? Icons.star_rounded
                                   : half
-                                      ? Icons.star_half_rounded
-                                      : Icons.star_outline_rounded,
+                                  ? Icons.star_half_rounded
+                                  : Icons.star_outline_rounded,
                               color: _kStar,
                               size: 18,
                             );
@@ -323,12 +345,15 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                       // Harga
                       Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 12),
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
                         decoration: BoxDecoration(
                           color: _kSurfaceAccent,
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                              color: _kPrimary.withValues(alpha: 0.2)),
+                            color: _kPrimary.withValues(alpha: 0.2),
+                          ),
                         ),
                         child: Row(
                           children: [
@@ -340,34 +365,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
-                            if (p.discountPercentage > 0) ...[
-                              const SizedBox(width: 10),
-                              Text(
-                                '\$${p.price.toStringAsFixed(2)}',
-                                style: const TextStyle(
-                                  color: _kTextFaint,
-                                  fontSize: 14,
-                                  decoration: TextDecoration.lineThrough,
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 6, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color: _kPrimary,
-                                  borderRadius: BorderRadius.circular(6),
-                                ),
-                                child: Text(
-                                  '-${p.discountPercentage.toStringAsFixed(0)}%',
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                            ],
                           ],
                         ),
                       ),
@@ -416,7 +413,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                             const SizedBox(width: 8),
                             Container(
                               padding: const EdgeInsets.symmetric(
-                                  horizontal: 8, vertical: 2),
+                                horizontal: 8,
+                                vertical: 2,
+                              ),
                               decoration: BoxDecoration(
                                 color: _kSurfaceAccent,
                                 borderRadius: BorderRadius.circular(12),
@@ -433,10 +432,10 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                           ],
                         ),
                         const SizedBox(height: 12),
-                        ...p.reviews.map((r) => _ReviewCard(
-                              review: r,
-                              formatDate: _formatDate,
-                            )),
+                        ...p.reviews.map(
+                          (r) =>
+                              _ReviewCard(review: r, formatDate: _formatDate),
+                        ),
                         const SizedBox(height: 32),
                       ] else ...[
                         const SizedBox(height: 32),
@@ -459,8 +458,11 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     if (images.isEmpty) {
       return Container(
         color: _kSurfaceAccent,
-        child: const Icon(Icons.image_not_supported_outlined,
-            color: _kTextFaint, size: 64),
+        child: const Icon(
+          Icons.image_not_supported_outlined,
+          color: _kTextFaint,
+          size: 64,
+        ),
       );
     }
     return PageView.builder(
@@ -470,10 +472,13 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         return Image.network(
           images[i],
           fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) => Container(
+          errorBuilder: (_, _, _) => Container(
             color: _kSurfaceAccent,
-            child: const Icon(Icons.image_not_supported_outlined,
-                color: _kTextFaint, size: 64),
+            child: const Icon(
+              Icons.image_not_supported_outlined,
+              color: _kTextFaint,
+              size: 64,
+            ),
           ),
           loadingBuilder: (_, child, progress) {
             if (progress == null) return child;
@@ -481,7 +486,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
               color: _kSurfaceAccent,
               child: const Center(
                 child: CircularProgressIndicator(
-                    strokeWidth: 2, color: _kPrimary),
+                  strokeWidth: 2,
+                  color: _kPrimary,
+                ),
               ),
             );
           },
@@ -554,8 +561,7 @@ class _ReviewCard extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: _kSurfaceAccent,
                   shape: BoxShape.circle,
-                  border:
-                      Border.all(color: _kPrimary.withValues(alpha: 0.3)),
+                  border: Border.all(color: _kPrimary.withValues(alpha: 0.3)),
                 ),
                 child: Center(
                   child: Text(

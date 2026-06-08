@@ -95,9 +95,7 @@ class _HomeScreenState extends State<HomeScreen> {
         onRefresh: _loadProducts,
         child: CustomScrollView(
           slivers: [
-            SliverToBoxAdapter(
-              child: _buildHeader(),
-            ),
+            SliverToBoxAdapter(child: _buildHeader()),
             if (_isLoading)
               SliverPadding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -106,8 +104,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     (_, index) => _SkeletonCard(),
                     childCount: 6,
                   ),
-                  gridDelegate:
-                      const SliverGridDelegateWithFixedCrossAxisCount(
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: 2,
                     mainAxisSpacing: 12,
                     crossAxisSpacing: 12,
@@ -116,9 +113,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               )
             else if (_errorMessage != null)
-              SliverFillRemaining(
-                child: _buildErrorState(),
-              )
+              SliverFillRemaining(child: _buildErrorState())
             else
               SliverPadding(
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
@@ -130,8 +125,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     childCount: _products.length,
                   ),
-                  gridDelegate:
-                      const SliverGridDelegateWithFixedCrossAxisCount(
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: 2,
                     mainAxisSpacing: 12,
                     crossAxisSpacing: 12,
@@ -180,8 +174,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Icon(MdiIcons.shoeSneaker,
-                color: Colors.white, size: 18),
+            child: Icon(MdiIcons.shoeSneaker, color: Colors.white, size: 18),
           ),
           const SizedBox(width: 10),
           const Text(
@@ -202,8 +195,7 @@ class _HomeScreenState extends State<HomeScreen> {
           onPressed: () {
             Navigator.pushReplacement(
               context,
-              MaterialPageRoute(
-                  builder: (_) => const LoginScreen()),
+              MaterialPageRoute(builder: (_) => const LoginScreen()),
             );
           },
         ),
@@ -255,10 +247,7 @@ class _HomeScreenState extends State<HomeScreen> {
               children: [
                 const Text(
                   'Hei, selamat datang 👟',
-                  style: TextStyle(
-                    color: Colors.white70,
-                    fontSize: 13,
-                  ),
+                  style: TextStyle(color: Colors.white70, fontSize: 13),
                 ),
                 const SizedBox(height: 2),
                 Text(
@@ -293,18 +282,11 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(
-              Icons.wifi_off_rounded,
-              color: kTextFaint,
-              size: 56,
-            ),
+            const Icon(Icons.wifi_off_rounded, color: kTextFaint, size: 56),
             const SizedBox(height: 16),
             Text(
               _errorMessage ?? 'Terjadi kesalahan.',
-              style: const TextStyle(
-                color: kTextMuted,
-                fontSize: 14,
-              ),
+              style: const TextStyle(color: kTextMuted, fontSize: 14),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 20),
@@ -316,7 +298,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 backgroundColor: kPrimaryColor,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(
-                    horizontal: 24, vertical: 12),
+                  horizontal: 24,
+                  vertical: 12,
+                ),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10),
                 ),
@@ -378,7 +362,7 @@ class _ProductCard extends StatelessWidget {
                   Image.network(
                     product.thumbnail,
                     fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => Container(
+                    errorBuilder: (_, _, _) => Container(
                       color: kSurfaceAccent,
                       child: const Icon(
                         Icons.image_not_supported_outlined,
@@ -399,34 +383,13 @@ class _ProductCard extends StatelessWidget {
                       );
                     },
                   ),
-                  if (product.discountPercentage > 0)
-                    Positioned(
-                      top: 8,
-                      right: 8,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 6, vertical: 3),
-                        decoration: BoxDecoration(
-                          color: kPrimaryColor,
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Text(
-                          '-${product.discountPercentage.toStringAsFixed(0)}%',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ),
                 ],
               ),
             ),
 
-            // ---- Info: title, category, price ----
+            // ---- Info: title, category ----
             Padding(
-              padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
+              padding: const EdgeInsets.fromLTRB(10, 5, 10, 10),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
@@ -438,7 +401,7 @@ class _ProductCard extends StatelessWidget {
                       color: kTextPrimary,
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
-                      height: 1.3,
+                      height: 1,
                     ),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
@@ -447,7 +410,9 @@ class _ProductCard extends StatelessWidget {
                   // Category Badge
                   Container(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 6, vertical: 2),
+                      horizontal: 6,
+                      vertical: 2,
+                    ),
                     decoration: BoxDecoration(
                       color: kSurfaceAccent,
                       borderRadius: BorderRadius.circular(4),
@@ -464,37 +429,6 @@ class _ProductCard extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 6),
-                  // Price
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Flexible(
-                        child: Text(
-                          '\$${product.discountedPrice.toStringAsFixed(0)}',
-                          style: const TextStyle(
-                            color: kPrimaryDark,
-                            fontSize: 13,
-                            fontWeight: FontWeight.bold,
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      if (product.discountPercentage > 0) ...[
-                        const SizedBox(width: 4),
-                        Flexible(
-                          child: Text(
-                            '\$${product.price.toStringAsFixed(0)}',
-                            style: const TextStyle(
-                              color: kTextFaint,
-                              fontSize: 10,
-                              decoration: TextDecoration.lineThrough,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
                 ],
               ),
             ),
@@ -525,9 +459,10 @@ class _SkeletonCardState extends State<_SkeletonCard>
       vsync: this,
       duration: const Duration(milliseconds: 1200),
     )..repeat(reverse: true);
-    _anim = Tween<double>(begin: 0.4, end: 1.0).animate(
-      CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut),
-    );
+    _anim = Tween<double>(
+      begin: 0.4,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut));
   }
 
   @override
@@ -540,7 +475,7 @@ class _SkeletonCardState extends State<_SkeletonCard>
   Widget build(BuildContext context) {
     return AnimatedBuilder(
       animation: _anim,
-      builder: (_, __) => Opacity(
+      builder: (_, _) => Opacity(
         opacity: _anim.value,
         child: Container(
           decoration: BoxDecoration(
