@@ -4,6 +4,9 @@
 //
 // Fitur:
 //   - Tampilkan daftar koleksi sepatu user dalam grid card
+//   - Card hanya menampilkan nama dan merek
+//   - Klik card untuk melihat detail lengkap
+//   - Tombol Edit dan Hapus ada di bagian bawah detail koleksi
 //   - Tambah koleksi baru via bottom sheet form
 //   - Edit koleksi via bottom sheet form (pre-filled)
 //   - Hapus koleksi via dialog konfirmasi
@@ -90,14 +93,13 @@ class KoleksiScreen extends StatelessWidget {
               crossAxisCount: 2,
               mainAxisSpacing: 12,
               crossAxisSpacing: 12,
-              childAspectRatio: 0.70,
+              childAspectRatio: 0.75,
             ),
             itemCount: items.length,
             itemBuilder: (context, index) {
               return _KoleksiCard(
                 item: items[index],
-                onEdit: () => _openForm(context, existing: items[index]),
-                onDelete: () => _confirmDelete(context, items[index]),
+                onTap: () => _showDetail(context, items[index]),
               );
             },
           );
@@ -122,6 +124,25 @@ class KoleksiScreen extends StatelessWidget {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (_) => _KoleksiForm(existing: existing),
+    );
+  }
+
+  void _showDetail(BuildContext context, KoleksiModel item) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _KoleksiDetail(
+        item: item,
+        onEdit: () {
+          Navigator.pop(context);
+          _openForm(context, existing: item);
+        },
+        onDelete: () {
+          Navigator.pop(context);
+          _confirmDelete(context, item);
+        },
+      ),
     );
   }
 
@@ -241,15 +262,14 @@ class _EmptyState extends StatelessWidget {
   }
 }
 
+// Card hanya menampilkan gambar, nama, dan merek
 class _KoleksiCard extends StatelessWidget {
   final KoleksiModel item;
-  final VoidCallback onEdit;
-  final VoidCallback onDelete;
+  final VoidCallback onTap;
 
   const _KoleksiCard({
     required this.item,
-    required this.onEdit,
-    required this.onDelete,
+    required this.onTap,
   });
 
   @override
@@ -257,7 +277,7 @@ class _KoleksiCard extends StatelessWidget {
     final hasImage = item.images.isNotEmpty;
 
     return GestureDetector(
-      onTap: () => _showDetail(context),
+      onTap: onTap,
       child: Container(
         decoration: BoxDecoration(
           color: _kSurface,
@@ -289,66 +309,29 @@ class _KoleksiCard extends StatelessWidget {
                     : _imagePlaceholder(),
               ),
             ),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      item.namaSepatu,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                        color: _kTextPri,
-                      ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    item.namaSepatu,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: _kTextPri,
                     ),
-                    const SizedBox(height: 2),
-                    Text(
-                      item.merek,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontSize: 11, color: _kTextMuted),
-                    ),
-                    const Spacer(),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Expanded(
-                          child: Text(
-                            _formatRupiah(item.harga),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700,
-                              color: _kPrimary,
-                            ),
-                          ),
-                        ),
-                        Row(
-                          children: [
-                            _ActionBtn(
-                              icon: Icons.edit_rounded,
-                              color: const Color(0xFF1976D2),
-                              tooltip: 'Edit',
-                              onTap: onEdit,
-                            ),
-                            const SizedBox(width: 4),
-                            _ActionBtn(
-                              icon: Icons.delete_rounded,
-                              color: _kError,
-                              tooltip: 'Hapus',
-                              onTap: onDelete,
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    item.merek,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 11, color: _kTextMuted),
+                  ),
+                ],
               ),
             ),
           ],
@@ -369,49 +352,19 @@ class _KoleksiCard extends StatelessWidget {
       ),
     );
   }
-
-  void _showDetail(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => _KoleksiDetail(item: item),
-    );
-  }
 }
 
-class _ActionBtn extends StatelessWidget {
-  final IconData icon;
-  final Color color;
-  final String tooltip;
-  final VoidCallback onTap;
-
-  const _ActionBtn({
-    required this.icon,
-    required this.color,
-    required this.tooltip,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Tooltip(
-      message: tooltip,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(6),
-        child: Padding(
-          padding: const EdgeInsets.all(4),
-          child: Icon(icon, size: 16, color: color),
-        ),
-      ),
-    );
-  }
-}
-
+// Detail koleksi dengan tombol Edit & Hapus di bagian bawah
 class _KoleksiDetail extends StatefulWidget {
   final KoleksiModel item;
-  const _KoleksiDetail({required this.item});
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
+
+  const _KoleksiDetail({
+    required this.item,
+    required this.onEdit,
+    required this.onDelete,
+  });
 
   @override
   State<_KoleksiDetail> createState() => _KoleksiDetailState();
@@ -437,6 +390,7 @@ class _KoleksiDetailState extends State<_KoleksiDetail> {
         ),
         child: Column(
           children: [
+            // Drag handle
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 12),
               child: Container(
@@ -448,10 +402,11 @@ class _KoleksiDetailState extends State<_KoleksiDetail> {
                 ),
               ),
             ),
+            // Konten detail
             Expanded(
               child: ListView(
                 controller: ctrl,
-                padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
                 children: [
                   if (imgs.isNotEmpty) ...[
                     ClipRRect(
@@ -576,6 +531,55 @@ class _KoleksiDetailState extends State<_KoleksiDetail> {
                       ),
                     ),
                   ],
+                  // Jarak sebelum tombol aksi
+                  const SizedBox(height: 28),
+                  // Divider pemisah
+                  const Divider(height: 1, color: _kBorder),
+                  const SizedBox(height: 16),
+                  // Tombol Edit dan Hapus
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: widget.onEdit,
+                          icon: const Icon(Icons.edit_rounded, size: 18),
+                          label: const Text(
+                            'Edit',
+                            style: TextStyle(fontWeight: FontWeight.w600),
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: const Color(0xFF1976D2),
+                            side: const BorderSide(color: Color(0xFF1976D2)),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: widget.onDelete,
+                          icon: const Icon(Icons.delete_rounded, size: 18),
+                          label: const Text(
+                            'Hapus',
+                            style: TextStyle(fontWeight: FontWeight.w600),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: _kError,
+                            foregroundColor: Colors.white,
+                            elevation: 0,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
                 ],
               ),
             ),
