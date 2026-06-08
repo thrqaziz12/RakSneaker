@@ -29,4 +29,31 @@ class ProductService {
           'Gagal memuat produk. Status: ${response.statusCode}');
     }
   }
+
+  /// Mengambil produk sepatu dari kategori mens-shoes dan womens-shoes,
+  /// lalu menggabungkan keduanya menjadi satu list.
+  Future<List<Product>> fetchShoeProducts() async {
+    final results = await Future.wait([
+      _fetchByCategory('mens-shoes'),
+      _fetchByCategory('womens-shoes'),
+    ]);
+
+    return [...results[0], ...results[1]];
+  }
+
+  Future<List<Product>> _fetchByCategory(String category) async {
+    final uri = Uri.parse('$_baseUrl/products/category/$category');
+    final response = await http.get(uri);
+
+    if (response.statusCode == 200) {
+      final Map<String, dynamic> data = jsonDecode(response.body);
+      final List<dynamic> productsJson = data['products'] as List<dynamic>;
+      return productsJson
+          .map((json) => Product.fromJson(json as Map<String, dynamic>))
+          .toList();
+    } else {
+      throw Exception(
+          'Gagal memuat kategori $category. Status: ${response.statusCode}');
+    }
+  }
 }

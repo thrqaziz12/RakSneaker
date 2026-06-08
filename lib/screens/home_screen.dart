@@ -4,7 +4,7 @@
 //
 // Fitur:
 //   - Menampilkan sapaan dengan nama username yang sedang login
-//   - Daftar produk sepatu dari https://dummyjson.com/products
+//   - Daftar produk sepatu dari dummyjson (mens-shoes + womens-shoes)
 //   - Loading skeleton saat data sedang diambil
 //   - Error state dengan tombol retry
 //   - Tombol logout untuk kembali ke halaman LoginScreen
@@ -69,7 +69,8 @@ class _HomeScreenState extends State<HomeScreen> {
     });
 
     try {
-      final products = await _productService.fetchProducts(limit: 30);
+      // Ambil hanya produk sepatu (mens-shoes + womens-shoes)
+      final products = await _productService.fetchShoeProducts();
       setState(() {
         _products = products;
         _isLoading = false;
@@ -100,37 +101,6 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
 
             // ----------------------------------------------------------------
-            // Label seksi produk
-            // ----------------------------------------------------------------
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text(
-                      'Koleksi Produk',
-                      style: TextStyle(
-                        color: kTextPrimary,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 0.3,
-                      ),
-                    ),
-                    if (!_isLoading && _errorMessage == null)
-                      Text(
-                        '${_products.length} produk',
-                        style: const TextStyle(
-                          color: kTextMuted,
-                          fontSize: 13,
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-            ),
-
-            // ----------------------------------------------------------------
             // Konten utama: loading / error / grid produk
             // ----------------------------------------------------------------
             if (_isLoading)
@@ -146,7 +116,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     crossAxisCount: 2,
                     mainAxisSpacing: 12,
                     crossAxisSpacing: 12,
-                    childAspectRatio: 0.68,
+                    childAspectRatio: 0.72,
                   ),
                 ),
               )
@@ -157,7 +127,7 @@ class _HomeScreenState extends State<HomeScreen> {
             else
               SliverPadding(
                 padding:
-                    const EdgeInsets.fromLTRB(16, 0, 16, 24),
+                    const EdgeInsets.fromLTRB(16, 8, 16, 24),
                 sliver: SliverGrid(
                   delegate: SliverChildBuilderDelegate(
                     (_, index) => _ProductCard(product: _products[index]),
@@ -168,7 +138,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     crossAxisCount: 2,
                     mainAxisSpacing: 12,
                     crossAxisSpacing: 12,
-                    childAspectRatio: 0.68,
+                    childAspectRatio: 0.72,
                   ),
                 ),
               ),
@@ -369,8 +339,7 @@ class _ProductCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: kSurfaceLight,
         borderRadius: BorderRadius.circular(14),
-        border:
-            Border.all(color: const Color(0x1AFF6B35), width: 1),
+        border: Border.all(color: const Color(0x1AFF6B35), width: 1),
         boxShadow: const [
           BoxShadow(
             color: Color(0x0AFF6B35),
@@ -382,10 +351,11 @@ class _ProductCard extends StatelessWidget {
       clipBehavior: Clip.hardEdge,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
           // ---- Thumbnail ----
           AspectRatio(
-            aspectRatio: 1.0,
+            aspectRatio: 1.1,
             child: Stack(
               fit: StackFit.expand,
               children: [
@@ -440,84 +410,89 @@ class _ProductCard extends StatelessWidget {
           ),
 
           // ---- Info ----
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Brand
-                  Text(
-                    product.brand.toUpperCase(),
-                    style: const TextStyle(
-                      color: kPrimaryColor,
-                      fontSize: 10,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: 0.5,
+          Padding(
+            padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Brand
+                Text(
+                  (product.brand).toUpperCase(),
+                  style: const TextStyle(
+                    color: kPrimaryColor,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.5,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 2),
+                // Nama produk
+                Text(
+                  product.title,
+                  style: const TextStyle(
+                    color: kTextPrimary,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    height: 1.3,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 6),
+                // Rating
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.star_rounded,
+                      color: Color(0xFFFFC107),
+                      size: 12,
                     ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 2),
-                  // Nama produk
-                  Text(
-                    product.title,
-                    style: const TextStyle(
-                      color: kTextPrimary,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      height: 1.3,
+                    const SizedBox(width: 3),
+                    Text(
+                      product.rating.toStringAsFixed(1),
+                      style: const TextStyle(
+                        color: kTextMuted,
+                        fontSize: 11,
+                      ),
                     ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const Spacer(),
-                  // Rating
-                  Row(
-                    children: [
-                      const Icon(
-                        Icons.star_rounded,
-                        color: Color(0xFFFFC107),
-                        size: 13,
-                      ),
-                      const SizedBox(width: 3),
-                      Text(
-                        product.rating.toStringAsFixed(1),
-                        style: const TextStyle(
-                          color: kTextMuted,
-                          fontSize: 11,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  // Harga
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Text(
+                  ],
+                ),
+                const SizedBox(height: 4),
+                // Harga
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Flexible(
+                      child: Text(
                         '\$${product.discountedPrice.toStringAsFixed(0)}',
                         style: const TextStyle(
                           color: kPrimaryDark,
-                          fontSize: 14,
+                          fontSize: 13,
                           fontWeight: FontWeight.bold,
                         ),
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      if (product.discountPercentage > 0) ...[
-                        const SizedBox(width: 4),
-                        Text(
+                    ),
+                    if (product.discountPercentage > 0) ...[
+                      const SizedBox(width: 4),
+                      Flexible(
+                        child: Text(
                           '\$${product.price.toStringAsFixed(0)}',
                           style: const TextStyle(
                             color: kTextFaint,
-                            fontSize: 11,
+                            fontSize: 10,
                             decoration: TextDecoration.lineThrough,
                           ),
+                          overflow: TextOverflow.ellipsis,
                         ),
-                      ],
+                      ),
                     ],
-                  ),
-                ],
-              ),
+                  ],
+                ),
+              ],
             ),
           ),
         ],
@@ -569,10 +544,11 @@ class _SkeletonCardState extends State<_SkeletonCard>
             borderRadius: BorderRadius.circular(14),
           ),
           child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
               // Gambar placeholder
               AspectRatio(
-                aspectRatio: 1.0,
+                aspectRatio: 1.1,
                 child: Container(
                   decoration: const BoxDecoration(
                     color: Color(0xFFE0DAD5),
@@ -588,14 +564,15 @@ class _SkeletonCardState extends State<_SkeletonCard>
                 padding: const EdgeInsets.all(10),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     _bar(0.5, 8),
                     const SizedBox(height: 6),
-                    _bar(1.0, 12),
+                    _bar(1.0, 11),
                     const SizedBox(height: 4),
-                    _bar(0.7, 12),
-                    const SizedBox(height: 10),
-                    _bar(0.4, 14),
+                    _bar(0.7, 11),
+                    const SizedBox(height: 8),
+                    _bar(0.4, 13),
                   ],
                 ),
               ),
