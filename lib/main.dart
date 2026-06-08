@@ -3,6 +3,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'models/user_model.dart';
 import 'models/fingerprint_model.dart';
 import 'models/jadwal_model.dart';
+import 'models/koleksi_model.dart';
 import 'screens/login_screen.dart';
 import 'services/notification_service.dart';
 
@@ -12,9 +13,11 @@ void main() async {
   Hive.registerAdapter(UserModelAdapter());
   Hive.registerAdapter(FingerprintModelAdapter());
   Hive.registerAdapter(JadwalModelAdapter());
+  Hive.registerAdapter(KoleksiModelAdapter());
   await Hive.openBox<UserModel>('users');
   await Hive.openBox<dynamic>('settings');
   await Hive.openBox<JadwalModel>('jadwal');
+  await Hive.openBox<KoleksiModel>('koleksi');
   // Inisialisasi NotificationService di awal
   await NotificationService().init();
   runApp(const RakSneakerApp());
