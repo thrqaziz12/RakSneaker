@@ -11,6 +11,9 @@
 // Fix v4.1:
 //   - Tambah await pada _authService.getLastLoggedInUsername() [async Future<String?>]
 //   - Tambah await pada _authService.login() [async Future<UserModel?>]
+//
+// Fix v4.2:
+//   - Teruskan user.id ke MainScreen sebagai parameter userId
 // =============================================================================
 
 import 'package:flutter/material.dart';
@@ -122,7 +125,10 @@ class _LoginScreenState extends State<LoginScreen>
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
-          builder: (_) => MainScreen(username: user.username),
+          builder: (_) => MainScreen(
+            username: user.username,
+            userId: user.id ?? 0,
+          ),
         ),
       );
     } else {
@@ -167,7 +173,10 @@ class _LoginScreenState extends State<LoginScreen>
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder: (_) => MainScreen(username: user.username),
+            builder: (_) => MainScreen(
+              username: user.username,
+              userId: user.id ?? 0,
+            ),
           ),
         );
       } else {

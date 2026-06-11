@@ -29,7 +29,8 @@ const kBorderColor    = Color(0xFFE8E0DB);
 
 class MainScreen extends StatefulWidget {
   final String username;
-  const MainScreen({super.key, required this.username});
+  final int userId;
+  const MainScreen({super.key, required this.username, required this.userId});
 
   @override
   State<MainScreen> createState() => _MainScreenState();
@@ -46,7 +47,7 @@ class _MainScreenState extends State<MainScreen>
     super.initState();
     _pages = [
       HomeScreen(username: widget.username),
-      const KoleksiScreen(),
+      KoleksiScreen(userId: widget.userId),
       const JadwalScreen(),
       const LokasiScreen(),
       ProfileScreen(username: widget.username),
