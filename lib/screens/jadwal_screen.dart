@@ -9,6 +9,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/jadwal_model.dart';
 import '../services/jadwal_service.dart';
 import '../services/notification_service.dart';
@@ -20,7 +21,7 @@ const _kTextPrimary = Color(0xFF1A1A1A);
 const _kTextMuted = Color(0xFF6B6B6B);
 const _kBorder = Color(0xFFE8E0DB);
 
-// Bug Fix #1: Konstanta minutesBefore terpusat — ubah di sini untuk
+// Konstanta minutesBefore terpusat — ubah di sini untuk
 // mengubah kapan notifikasi muncul di seluruh aplikasi.
 const int _kNotifMinutesBefore = 30;
 
@@ -35,19 +36,29 @@ class _JadwalScreenState extends State<JadwalScreen> {
   final JadwalService _jadwalService = JadwalService();
   final NotificationService _notifService = NotificationService();
   List<JadwalModel> _jadwalList = [];
+  int _userId = 0;
 
   @override
   void initState() {
     super.initState();
-    _loadJadwal();
-    // Listen perubahan Hive box secara real-time
-    _jadwalService.watchJadwal().listen((_) => _loadJadwal());
+    _initUserId();
   }
 
-  void _loadJadwal() {
-    setState(() {
-      _jadwalList = _jadwalService.getAllJadwal();
-    });
+  /// Ambil userId dari SharedPreferences lalu muat jadwal.
+  Future<void> _initUserId() async {
+    final prefs = await SharedPreferences.getInstance();
+    // TODO: Sesuaikan key 'userId' dengan key yang dipakai di AuthService.
+    _userId = prefs.getInt('userId') ?? 0;
+    await _loadJadwal();
+  }
+
+  Future<void> _loadJadwal() async {
+    final list = await _jadwalService.getAllJadwal(_userId);
+    if (mounted) {
+      setState(() {
+        _jadwalList = list;
+      });
+    }
   }
 
   Future<void> _hapusJadwal(JadwalModel jadwal) async {
@@ -81,7 +92,8 @@ class _JadwalScreenState extends State<JadwalScreen> {
     );
     if (confirm == true) {
       await _notifService.cancelJadwalNotification(jadwal.id);
-      await _jadwalService.hapusJadwal(jadwal.id);
+      await _jadwalService.hapusJadwal(jadwal.id, _userId);
+      await _loadJadwal();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -103,15 +115,14 @@ class _JadwalScreenState extends State<JadwalScreen> {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) => _TambahJadwalSheet(
-        // Bug Fix #1: Teruskan minutesBefore ke scheduleJadwalNotification
-        // Sebelumnya dipanggil tanpa parameter → selalu minutesBefore = 0
-        // (tepat saat waktu, tidak ada pengingat awal sama sekali).
+        userId: _userId,
         onSave: (jadwal) async {
           await _jadwalService.tambahJadwal(jadwal);
           await _notifService.scheduleJadwalNotification(
             jadwal,
             minutesBefore: _kNotifMinutesBefore,
           );
+          await _loadJadwal();
           if (mounted) {
             final infoTeks = _kNotifMinutesBefore == 0
                 ? 'Notifikasi akan muncul tepat saat jadwal.'
@@ -497,7 +508,6 @@ class _JadwalCard extends StatelessWidget {
                   ],
                 ),
               ],
-              // Bug Fix #6: Tampilkan info notifikasi yang akurat
               if (!isPast) ...[
                 const SizedBox(height: 10),
                 Row(
@@ -573,9 +583,13 @@ class _InfoChip extends StatelessWidget {
 // _TambahJadwalSheet — Bottom sheet form untuk tambah jadwal baru
 // ---------------------------------------------------------------------------
 class _TambahJadwalSheet extends StatefulWidget {
+  final int userId;
   final Future<void> Function(JadwalModel jadwal) onSave;
 
-  const _TambahJadwalSheet({required this.onSave});
+  const _TambahJadwalSheet({
+    required this.userId,
+    required this.onSave,
+  });
 
   @override
   State<_TambahJadwalSheet> createState() => _TambahJadwalSheetState();
@@ -675,6 +689,7 @@ class _TambahJadwalSheetState extends State<_TambahJadwalSheet> {
 
     final jadwal = JadwalModel(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
+      userId: widget.userId,
       namaSepatu: _namaCtrl.text.trim(),
       merekSepatu: _merekCtrl.text.trim(),
       tanggalWaktu: tanggalWaktu,
@@ -826,7 +841,7 @@ class _TambahJadwalSheetState extends State<_TambahJadwalSheet> {
                 ),
               ),
               const SizedBox(height: 12),
-              // Bug Fix #6: Tampilkan info notifikasi yang akurat sesuai _kNotifMinutesBefore
+              // Info notifikasi
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
