@@ -658,7 +658,7 @@ class _FingerprintScreenState extends State<FingerprintScreen>
           child: ListView.separated(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
             itemCount: fps.length,
-            separatorBuilder: (_, _) => const SizedBox(height: 10),
+            separatorBuilder: (_, __) => const SizedBox(height: 10),
             itemBuilder: (_, i) {
               final fp = fps[i];
               return _FingerprintTile(
