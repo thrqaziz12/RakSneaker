@@ -8,7 +8,7 @@
 //   3. Tekan tombol "Tambah Sidik Jari"
 //   4. App memanggil local_auth (LocalAuthentication) untuk verifikasi
 //      sidik jari NYATA dari sensor hardware perangkat
-//   5. Jika berhasil → simpan record ke Hive box 'fingerprints'
+//   5. Jika berhasil → simpan record ke tabel SQLite 'fingerprints'
 //   6. Daftar sidik jari terdaftar tampil di list
 //   7. User dapat menghapus sidik jari
 //
@@ -16,13 +16,16 @@
 //   Menggunakan package local_auth ^2.3.0 untuk autentikasi biometrik nyata.
 //   Sensor fingerprint hardware perangkat dipanggil via LocalAuthentication.
 //   Fallback graceful jika perangkat tidak mendukung biometrik.
+//   Data disimpan ke SQLite melalui DatabaseHelper (tabel 'fingerprints').
 //
 // Tema: Light Mode Sneaker — Oranye #FF6B35
 // =============================================================================
 
 import 'package:flutter/material.dart';
-import 'package:hive_flutter/hive_flutter.dart';
+import '../core/database_helper.dart';
 import '../models/fingerprint_model.dart';
+import '../models/user_model.dart';
+import '../services/auth_service.dart';
 import '../services/biometric_service.dart';
 
 const _kPrimary = Color(0xFFFF6B35);
@@ -48,9 +51,15 @@ class FingerprintScreen extends StatefulWidget {
 
 class _FingerprintScreenState extends State<FingerprintScreen>
     with SingleTickerProviderStateMixin {
-  late Box<FingerprintModel> _box;
-  bool _boxReady = false;
+  // SQLite — DatabaseHelper & data list
+  final DatabaseHelper _dbHelper = DatabaseHelper();
+  List<FingerprintModel> _fingerprints = [];
+  bool _dbReady = false;
 
+  // userId dari tabel users (diperlukan sebagai foreign key)
+  int? _userId;
+
+  final _authService = AuthService();
   final _biometricService = BiometricService();
   bool _isBiometricSupported = false;
   bool _isBiometricEnrolled = false;
@@ -69,13 +78,37 @@ class _FingerprintScreenState extends State<FingerprintScreen>
     _pulseAnimation = Tween<double>(begin: 1.0, end: 1.12).animate(
       CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
     );
-    _initBox();
+    _initData();
     _checkBiometricStatus();
   }
 
-  Future<void> _initBox() async {
-    _box = await Hive.openBox<FingerprintModel>('fingerprints');
-    if (mounted) setState(() => _boxReady = true);
+  // Inisialisasi: ambil userId lalu load daftar sidik jari dari SQLite
+  Future<void> _initData() async {
+    final UserModel? user =
+        await _authService.getUserByUsername(widget.username);
+    if (user == null || user.id == null) {
+      if (mounted) setState(() => _dbReady = true);
+      return;
+    }
+    _userId = user.id;
+    await _loadFingerprints();
+  }
+
+  Future<void> _loadFingerprints() async {
+    if (_userId == null) return;
+    final db = await _dbHelper.database;
+    final rows = await db.query(
+      'fingerprints',
+      where: 'userId = ?',
+      whereArgs: [_userId],
+      orderBy: 'id DESC',
+    );
+    if (mounted) {
+      setState(() {
+        _fingerprints = rows.map(FingerprintModel.fromMap).toList();
+        _dbReady = true;
+      });
+    }
   }
 
   Future<void> _checkBiometricStatus() async {
@@ -95,20 +128,10 @@ class _FingerprintScreenState extends State<FingerprintScreen>
     super.dispose();
   }
 
-  // Daftar sidik jari milik user yang sedang login
-  List<FingerprintModel> get _myFingerprints => _boxReady
-      ? _box.values
-            .where((f) => f.username == widget.username)
-            .toList()
-            .reversed
-            .toList()
-      : [];
-
   // -------------------------------------------------------------------
   // Dialog tambah sidik jari — memanggil sensor biometrik NYATA
   // -------------------------------------------------------------------
   void _showAddDialog() {
-    // Jika perangkat tidak support biometrik, tampilkan info
     if (!_isBiometricSupported) {
       _showInfoSnackbar(
         'Perangkat ini tidak mendukung autentikasi biometrik.',
@@ -339,9 +362,10 @@ class _FingerprintScreenState extends State<FingerprintScreen>
                   ),
                   onPressed: scanned
                       ? () async {
+                          if (_userId == null) return;
                           final rawLabel = labelController.text.trim();
                           final label = rawLabel.isEmpty
-                              ? 'Sidik Jari ${_myFingerprints.length + 1}'
+                              ? 'Sidik Jari ${_fingerprints.length + 1}'
                               : rawLabel;
                           final now = DateTime.now();
                           final dateStr =
@@ -350,15 +374,20 @@ class _FingerprintScreenState extends State<FingerprintScreen>
                               '/${now.year} '
                               '${now.hour.toString().padLeft(2, '0')}:'
                               '${now.minute.toString().padLeft(2, '0')}';
-                          await _box.add(
+
+                          // Simpan ke SQLite
+                          final db = await _dbHelper.database;
+                          await db.insert(
+                            'fingerprints',
                             FingerprintModel(
-                              username: widget.username,
+                              userId: _userId!,
                               label: label,
                               addedAt: dateStr,
-                            ),
+                            ).toMap(),
                           );
+
                           if (mounted) {
-                            setState(() {});
+                            await _loadFingerprints();
                             Navigator.pop(context);
                             _showSuccessSnackbar(label);
                           }
@@ -459,15 +488,21 @@ class _FingerprintScreenState extends State<FingerprintScreen>
       ),
     );
     if (confirmed == true && mounted) {
-      await fp.delete();
-      setState(() {});
+      // Hapus dari SQLite berdasarkan id
+      if (fp.id != null) {
+        final db = await _dbHelper.database;
+        await db.delete(
+          'fingerprints',
+          where: 'id = ?',
+          whereArgs: [fp.id],
+        );
+      }
+      await _loadFingerprints();
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final fps = _myFingerprints;
-
     return Scaffold(
       backgroundColor: _kBg,
       appBar: AppBar(
@@ -499,7 +534,7 @@ class _FingerprintScreenState extends State<FingerprintScreen>
           const SizedBox(width: 4),
         ],
       ),
-      body: !_boxReady
+      body: !_dbReady
           ? const Center(child: CircularProgressIndicator(color: _kPrimary))
           : Column(
               children: [
@@ -507,7 +542,9 @@ class _FingerprintScreenState extends State<FingerprintScreen>
                 if (!_isBiometricSupported || !_isBiometricEnrolled)
                   _buildBiometricWarning(),
                 Expanded(
-                  child: fps.isEmpty ? _buildEmptyState() : _buildList(fps),
+                  child: _fingerprints.isEmpty
+                      ? _buildEmptyState()
+                      : _buildList(_fingerprints),
                 ),
               ],
             ),
