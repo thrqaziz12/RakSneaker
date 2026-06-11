@@ -1,40 +1,25 @@
 // =============================================================================
 // koleksi_model.dart
-// Model data koleksi sepatu milik user.
-// Disimpan menggunakan Hive (typeId: 3)
-// Fields: id, namaSepatu, merek, harga, keterangan, images (List<String>)
+// Model data koleksi sepatu — disimpan di tabel SQLite 'koleksi'.
+// Setiap record terhubung ke user melalui userId.
+// Field 'images' disimpan sebagai JSON string (List<String>).
 // =============================================================================
 
-import 'package:hive/hive.dart';
+import 'dart:convert';
 
-part 'koleksi_model.g.dart';
-
-@HiveType(typeId: 3)
-class KoleksiModel extends HiveObject {
-  @HiveField(0)
-  late String id;
-
-  @HiveField(1)
-  late String namaSepatu;
-
-  @HiveField(2)
-  late String merek;
-
-  @HiveField(3)
-  late double harga;
-
-  @HiveField(4)
-  late String keterangan;
-
-  /// Daftar URL/path gambar — boleh lebih dari satu
-  @HiveField(5)
-  late List<String> images;
-
-  @HiveField(6)
-  late DateTime createdAt;
+class KoleksiModel {
+  final String id;
+  final int userId;
+  final String namaSepatu;
+  final String merek;
+  final double harga;
+  final String keterangan;
+  final List<String> images;
+  final DateTime createdAt;
 
   KoleksiModel({
     required this.id,
+    required this.userId,
     required this.namaSepatu,
     required this.merek,
     required this.harga,
@@ -42,4 +27,27 @@ class KoleksiModel extends HiveObject {
     required this.images,
     required this.createdAt,
   });
+
+  Map<String, dynamic> toMap() => {
+        'id': id,
+        'userId': userId,
+        'namaSepatu': namaSepatu,
+        'merek': merek,
+        'harga': harga,
+        'keterangan': keterangan,
+        'images': jsonEncode(images),
+        'createdAt': createdAt.toIso8601String(),
+      };
+
+  factory KoleksiModel.fromMap(Map<String, dynamic> map) => KoleksiModel(
+        id: map['id'] as String,
+        userId: map['userId'] as int,
+        namaSepatu: map['namaSepatu'] as String,
+        merek: map['merek'] as String,
+        harga: (map['harga'] as num).toDouble(),
+        keterangan: map['keterangan'] as String,
+        images: List<String>.from(
+            jsonDecode(map['images'] as String) as List),
+        createdAt: DateTime.parse(map['createdAt'] as String),
+      );
 }

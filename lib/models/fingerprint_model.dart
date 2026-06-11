@@ -1,21 +1,32 @@
-import 'package:hive/hive.dart';
+// =============================================================================
+// fingerprint_model.dart
+// Model data sidik jari — disimpan di tabel SQLite 'fingerprints'.
+// Setiap record terhubung ke user melalui userId.
+// =============================================================================
 
-part 'fingerprint_model.g.dart';
-
-@HiveType(typeId: 1)
-class FingerprintModel extends HiveObject {
-  @HiveField(0)
-  late String username;
-
-  @HiveField(1)
-  late String label;
-
-  @HiveField(2)
-  late String addedAt;
+class FingerprintModel {
+  final int? id;
+  final int userId;
+  final String label;
+  final String addedAt;
 
   FingerprintModel({
-    required this.username,
+    this.id,
+    required this.userId,
     required this.label,
     required this.addedAt,
   });
+
+  Map<String, dynamic> toMap() => {
+        'userId': userId,
+        'label': label,
+        'addedAt': addedAt,
+      };
+
+  factory FingerprintModel.fromMap(Map<String, dynamic> map) => FingerprintModel(
+        id: map['id'] as int?,
+        userId: map['userId'] as int,
+        label: map['label'] as String,
+        addedAt: map['addedAt'] as String,
+      );
 }

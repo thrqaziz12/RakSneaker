@@ -1,15 +1,15 @@
 // =============================================================================
 // biometric_service.dart
-// Service untuk autentikasi biometrik nyata menggunakan local_auth.
+// Service autentikasi biometrik menggunakan local_auth.
 //
-// Fitur:
-//   - Cek ketersediaan sensor biometrik di perangkat
-//   - Cek jenis biometrik yang tersedia (fingerprint, face, iris)
-//   - Autentikasi biometrik dengan pesan yang dapat dikustomisasi
-//   - Handle error gracefully
+// Data sidik jari (label & metadata) disimpan di tabel SQLite 'fingerprints'
+// yang terhubung ke userId sehingga setiap user punya record sidik jari sendiri.
 // =============================================================================
 
 import 'package:local_auth/local_auth.dart';
+import 'package:sqflite/sqflite.dart';
+import '../core/database_helper.dart';
+import '../models/fingerprint_model.dart';
 
 class BiometricService {
   static final BiometricService _instance = BiometricService._internal();
@@ -17,8 +17,14 @@ class BiometricService {
   BiometricService._internal();
 
   final LocalAuthentication _auth = LocalAuthentication();
+  final DatabaseHelper _dbHelper = DatabaseHelper();
 
-  /// Cek apakah perangkat mendukung biometrik
+  Future<Database> get _db async => await _dbHelper.database;
+
+  // ──────────────────────────────────────────────
+  // Hardware checks
+  // ──────────────────────────────────────────────
+
   Future<bool> isDeviceSupported() async {
     try {
       return await _auth.isDeviceSupported();
@@ -27,7 +33,6 @@ class BiometricService {
     }
   }
 
-  /// Cek apakah ada biometrik yang sudah terdaftar di perangkat
   Future<bool> canCheckBiometrics() async {
     try {
       return await _auth.canCheckBiometrics;
@@ -36,7 +41,6 @@ class BiometricService {
     }
   }
 
-  /// Ambil daftar jenis biometrik yang tersedia
   Future<List<BiometricType>> getAvailableBiometrics() async {
     try {
       return await _auth.getAvailableBiometrics();
@@ -45,16 +49,16 @@ class BiometricService {
     }
   }
 
-  /// Cek apakah sensor fingerprint tersedia
   Future<bool> isFingerprintAvailable() async {
     final available = await getAvailableBiometrics();
     return available.contains(BiometricType.fingerprint) ||
         available.contains(BiometricType.strong);
   }
 
-  /// Lakukan autentikasi biometrik
-  /// [reason] : pesan yang ditampilkan kepada pengguna
-  /// Returns true jika autentikasi berhasil
+  // ──────────────────────────────────────────────
+  // Autentikasi biometrik hardware
+  // ──────────────────────────────────────────────
+
   Future<BiometricResult> authenticate({
     required String reason,
     bool useErrorDialogs = true,
@@ -92,7 +96,9 @@ class BiometricService {
       return BiometricResult(
         success: didAuthenticate,
         error: didAuthenticate ? null : BiometricError.failed,
-        message: didAuthenticate ? 'Autentikasi berhasil.' : 'Autentikasi dibatalkan atau gagal.',
+        message: didAuthenticate
+            ? 'Autentikasi berhasil.'
+            : 'Autentikasi dibatalkan atau gagal.',
       );
     } on Exception catch (e) {
       return BiometricResult(
@@ -102,14 +108,44 @@ class BiometricService {
       );
     }
   }
+
+  // ──────────────────────────────────────────────
+  // CRUD data sidik jari per user
+  // ──────────────────────────────────────────────
+
+  /// Tambah record sidik jari untuk user tertentu.
+  Future<void> tambahFingerprint(FingerprintModel fp) async {
+    final db = await _db;
+    await db.insert('fingerprints', fp.toMap(),
+        conflictAlgorithm: ConflictAlgorithm.replace);
+  }
+
+  /// Ambil semua sidik jari milik [userId].
+  Future<List<FingerprintModel>> getFingerprintsByUser(int userId) async {
+    final db = await _db;
+    final rows = await db.query(
+      'fingerprints',
+      where: 'userId = ?',
+      whereArgs: [userId],
+      orderBy: 'addedAt DESC',
+    );
+    return rows.map(FingerprintModel.fromMap).toList();
+  }
+
+  /// Hapus sidik jari berdasarkan id-nya.
+  Future<void> hapusFingerprint(int id) async {
+    final db = await _db;
+    await db.delete('fingerprints', where: 'id = ?', whereArgs: [id]);
+  }
+
+  /// Cek apakah user sudah punya minimal 1 sidik jari terdaftar.
+  Future<bool> hasFingerprint(int userId) async {
+    final list = await getFingerprintsByUser(userId);
+    return list.isNotEmpty;
+  }
 }
 
-enum BiometricError {
-  notSupported,
-  notEnrolled,
-  failed,
-  unknown,
-}
+enum BiometricError { notSupported, notEnrolled, failed, unknown }
 
 class BiometricResult {
   final bool success;

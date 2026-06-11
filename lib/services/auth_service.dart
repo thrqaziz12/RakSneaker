@@ -1,103 +1,141 @@
-import 'package:hive/hive.dart';
-import '../models/user_model.dart';
+// =============================================================================
+// auth_service.dart
+// Service autentikasi menggunakan SQLite.
+//
+// Semua data user (register, login, lookup) mengakses tabel 'users'.
+// lastLoggedInUsername disimpan di tabel 'settings' (key-value).
+// =============================================================================
+
+import 'package:sqflite/sqflite.dart';
+import '../core/database_helper.dart';
 import '../core/encryption_helper.dart';
+import '../models/user_model.dart';
 
 class AuthService {
-  static const String _boxName = 'users';
-  static const String _settingsBox = 'settings';
-  static const String _lastUsernameKey = 'lastLoggedInUsername';
+  final DatabaseHelper _dbHelper = DatabaseHelper();
 
-  Box<UserModel> get _usersBox => Hive.box<UserModel>(_boxName);
-  Box<dynamic> get _settings => Hive.box<dynamic>(_settingsBox);
+  Future<Database> get _db async => await _dbHelper.database;
 
-  /// Simpan username terakhir yang berhasil login (untuk login biometrik)
+  // ──────────────────────────────────────────────
+  // Last logged-in username (untuk biometrik)
+  // ──────────────────────────────────────────────
+
+  /// Simpan username terakhir yang berhasil login.
   Future<void> saveLastLoggedInUsername(String username) async {
-    await _settings.put(_lastUsernameKey, username);
+    final db = await _db;
+    // Pastikan tabel settings ada (dibuat jika belum ada)
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS settings (
+        key   TEXT PRIMARY KEY,
+        value TEXT NOT NULL
+      )
+    ''');
+    await db.insert(
+      'settings',
+      {'key': 'lastLoggedInUsername', 'value': username},
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
   }
 
-  /// Ambil username terakhir yang berhasil login
-  /// Return null jika belum pernah login sebelumnya
-  String? getLastLoggedInUsername() {
-    return _settings.get(_lastUsernameKey) as String?;
+  /// Ambil username terakhir yang berhasil login.
+  Future<String?> getLastLoggedInUsername() async {
+    final db = await _db;
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS settings (
+        key   TEXT PRIMARY KEY,
+        value TEXT NOT NULL
+      )
+    ''');
+    final result = await db.query(
+      'settings',
+      where: 'key = ?',
+      whereArgs: ['lastLoggedInUsername'],
+    );
+    if (result.isEmpty) return null;
+    return result.first['value'] as String?;
   }
 
-  /// Register user baru
-  /// Return null jika berhasil, atau pesan error jika gagal
+  // ──────────────────────────────────────────────
+  // Register
+  // ──────────────────────────────────────────────
+
+  /// Register user baru.
+  /// Return null jika berhasil, atau pesan error jika gagal.
   Future<String?> register({
     required String username,
     required String email,
     required String password,
   }) async {
-    if (username.trim().isEmpty) {
-      return 'Username tidak boleh kosong';
-    }
+    if (username.trim().isEmpty) return 'Username tidak boleh kosong';
     if (!email.contains('@') || !email.contains('.')) {
       return 'Format email tidak valid';
     }
-    if (password.length < 6) {
-      return 'Password minimal 6 karakter';
-    }
+    if (password.length < 6) return 'Password minimal 6 karakter';
 
-    final existingUser = _usersBox.values
-        .where((u) => u.username.toLowerCase() == username.trim().toLowerCase())
-        .isNotEmpty;
-    if (existingUser) {
-      return 'Username sudah digunakan';
-    }
+    final db = await _db;
 
-    final existingEmail = _usersBox.values
-        .where((u) => u.email.toLowerCase() == email.trim().toLowerCase())
-        .isNotEmpty;
-    if (existingEmail) {
-      return 'Email sudah digunakan';
-    }
+    final existingUser = await db.query(
+      'users',
+      where: 'LOWER(username) = ?',
+      whereArgs: [username.trim().toLowerCase()],
+    );
+    if (existingUser.isNotEmpty) return 'Username sudah digunakan';
 
-    final encryptedPassword = EncryptionHelper.encryptPassword(password);
+    final existingEmail = await db.query(
+      'users',
+      where: 'LOWER(email) = ?',
+      whereArgs: [email.trim().toLowerCase()],
+    );
+    if (existingEmail.isNotEmpty) return 'Email sudah digunakan';
+
     final newUser = UserModel(
       username: username.trim(),
       email: email.trim().toLowerCase(),
-      encryptedPassword: encryptedPassword,
+      encryptedPassword: EncryptionHelper.encryptPassword(password),
     );
-    await _usersBox.add(newUser);
+    await db.insert('users', newUser.toMap());
     return null;
   }
 
-  /// Login user dengan username + password
-  /// Return UserModel jika berhasil, null jika gagal
-  UserModel? login({
+  // ──────────────────────────────────────────────
+  // Login
+  // ──────────────────────────────────────────────
+
+  /// Login dengan username + password.
+  /// Return UserModel jika berhasil, null jika gagal.
+  Future<UserModel?> login({
     required String username,
     required String password,
-  }) {
+  }) async {
     if (username.trim().isEmpty || password.isEmpty) return null;
 
-    try {
-      final user = _usersBox.values.firstWhere(
-        (u) => u.username.toLowerCase() == username.trim().toLowerCase(),
-      );
+    final db = await _db;
+    final rows = await db.query(
+      'users',
+      where: 'LOWER(username) = ?',
+      whereArgs: [username.trim().toLowerCase()],
+    );
+    if (rows.isEmpty) return null;
 
-      final decryptedPassword =
-          EncryptionHelper.decryptPassword(user.encryptedPassword);
-
-      if (decryptedPassword == password) {
-        return user;
-      }
-      return null;
-    } catch (_) {
-      return null;
-    }
+    final user = UserModel.fromMap(rows.first);
+    final decrypted = EncryptionHelper.decryptPassword(user.encryptedPassword);
+    return decrypted == password ? user : null;
   }
 
-  /// Cari user berdasarkan username (tanpa validasi password)
-  /// Digunakan untuk login biometrik
-  UserModel? getUserByUsername(String username) {
+  // ──────────────────────────────────────────────
+  // Lookup by username (untuk login biometrik)
+  // ──────────────────────────────────────────────
+
+  Future<UserModel?> getUserByUsername(String username) async {
     if (username.trim().isEmpty) return null;
 
-    try {
-      return _usersBox.values.firstWhere(
-        (u) => u.username.toLowerCase() == username.trim().toLowerCase(),
-      );
-    } catch (_) {
-      return null;
-    }
+    final db = await _db;
+    final rows = await db.query(
+      'users',
+      where: 'LOWER(username) = ?',
+      whereArgs: [username.trim().toLowerCase()],
+    );
+    if (rows.isEmpty) return null;
+    return UserModel.fromMap(rows.first);
   }
 }

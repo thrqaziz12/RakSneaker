@@ -1,39 +1,45 @@
 // =============================================================================
 // jadwal_model.dart
-// Model data untuk jadwal perawatan sepatu.
-// Disimpan menggunakan Hive (typeId: 2)
+// Model data jadwal perawatan sepatu — disimpan di tabel SQLite 'jadwal'.
+// Setiap record terhubung ke user melalui userId.
 // =============================================================================
 
-import 'package:hive/hive.dart';
-
-part 'jadwal_model.g.dart';
-
-@HiveType(typeId: 2)
-class JadwalModel extends HiveObject {
-  @HiveField(0)
-  late String id;
-
-  @HiveField(1)
-  late String namaSepatu;
-
-  @HiveField(2)
-  late String merekSepatu;
-
-  @HiveField(3)
-  late DateTime tanggalWaktu; // Gabungan tanggal + waktu
-
-  @HiveField(4)
-  late String keterangan;
-
-  @HiveField(5)
-  late DateTime createdAt;
+class JadwalModel {
+  final String id;
+  final int userId;
+  final String namaSepatu;
+  final String merekSepatu;
+  final DateTime tanggalWaktu;
+  final String keterangan;
+  final DateTime createdAt;
 
   JadwalModel({
     required this.id,
+    required this.userId,
     required this.namaSepatu,
     required this.merekSepatu,
     required this.tanggalWaktu,
     required this.keterangan,
     required this.createdAt,
   });
+
+  Map<String, dynamic> toMap() => {
+        'id': id,
+        'userId': userId,
+        'namaSepatu': namaSepatu,
+        'merekSepatu': merekSepatu,
+        'tanggalWaktu': tanggalWaktu.toIso8601String(),
+        'keterangan': keterangan,
+        'createdAt': createdAt.toIso8601String(),
+      };
+
+  factory JadwalModel.fromMap(Map<String, dynamic> map) => JadwalModel(
+        id: map['id'] as String,
+        userId: map['userId'] as int,
+        namaSepatu: map['namaSepatu'] as String,
+        merekSepatu: map['merekSepatu'] as String,
+        tanggalWaktu: DateTime.parse(map['tanggalWaktu'] as String),
+        keterangan: map['keterangan'] as String,
+        createdAt: DateTime.parse(map['createdAt'] as String),
+      );
 }

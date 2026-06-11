@@ -1,21 +1,31 @@
-import 'package:hive/hive.dart';
+// =============================================================================
+// user_model.dart
+// Model data untuk akun user — disimpan di tabel SQLite 'users'.
+// =============================================================================
 
-part 'user_model.g.dart';
-
-@HiveType(typeId: 0)
-class UserModel extends HiveObject {
-  @HiveField(0)
-  late String username;
-
-  @HiveField(1)
-  late String email;
-
-  @HiveField(2)
-  late String encryptedPassword;
+class UserModel {
+  final int? id;
+  final String username;
+  final String email;
+  final String encryptedPassword;
 
   UserModel({
+    this.id,
     required this.username,
     required this.email,
     required this.encryptedPassword,
   });
+
+  Map<String, dynamic> toMap() => {
+        'username': username,
+        'email': email,
+        'encryptedPassword': encryptedPassword,
+      };
+
+  factory UserModel.fromMap(Map<String, dynamic> map) => UserModel(
+        id: map['id'] as int?,
+        username: map['username'] as String,
+        email: map['email'] as String,
+        encryptedPassword: map['encryptedPassword'] as String,
+      );
 }
