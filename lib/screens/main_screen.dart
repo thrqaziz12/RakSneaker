@@ -48,7 +48,7 @@ class _MainScreenState extends State<MainScreen>
     _pages = [
       HomeScreen(username: widget.username),
       KoleksiScreen(userId: widget.userId),
-      const JadwalScreen(),
+      JadwalScreen(userId: widget.userId),
       const LokasiScreen(),
       ProfileScreen(username: widget.username),
     ];
