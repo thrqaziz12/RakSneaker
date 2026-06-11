@@ -13,7 +13,7 @@
 //   - Setiap koleksi menyimpan: gambar dari device (multi-foto), nama, merek,
 //     harga, keterangan
 //
-// Storage: Hive box 'koleksi'
+// Storage: SQLite via KoleksiService
 // Tema: konsisten dengan app (Oranye #FF6B35)
 // =============================================================================
 
@@ -21,10 +21,10 @@ import 'dart:io';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:hive_flutter/hive_flutter.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 import '../models/koleksi_model.dart';
+import '../services/koleksi_service.dart';
 
 const _kPrimary = Color(0xFFFF6B35);
 const _kPrimaryBg = Color(0xFFFFF8F5);
@@ -41,11 +41,38 @@ String _formatRupiah(double value) {
     if (i > 0 && (parts.length - i) % 3 == 0) result.write('.');
     result.write(parts[i]);
   }
-  return 'Rp ${result.toString()}';
+  return 'Rp \${result.toString()}';
 }
 
-class KoleksiScreen extends StatelessWidget {
-  const KoleksiScreen({super.key});
+class KoleksiScreen extends StatefulWidget {
+  final int userId;
+  const KoleksiScreen({super.key, required this.userId});
+
+  @override
+  State<KoleksiScreen> createState() => _KoleksiScreenState();
+}
+
+class _KoleksiScreenState extends State<KoleksiScreen> {
+  final KoleksiService _service = KoleksiService();
+  List<KoleksiModel> _items = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadKoleksi();
+  }
+
+  Future<void> _loadKoleksi() async {
+    setState(() => _isLoading = true);
+    final data = await _service.getAllKoleksi(widget.userId);
+    if (mounted) {
+      setState(() {
+        _items = data;
+        _isLoading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -77,34 +104,31 @@ class KoleksiScreen extends StatelessWidget {
           child: Container(height: 1, color: _kBorder),
         ),
       ),
-      body: ValueListenableBuilder(
-        valueListenable: Hive.box<KoleksiModel>('koleksi').listenable(),
-        builder: (context, Box<KoleksiModel> box, _) {
-          final items = box.values.toList()
-            ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
-
-          if (items.isEmpty) {
-            return _EmptyState(onAdd: () => _openForm(context, existing: null));
-          }
-
-          return GridView.builder(
-            padding: const EdgeInsets.all(16),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              mainAxisSpacing: 12,
-              crossAxisSpacing: 12,
-              childAspectRatio: 0.75,
-            ),
-            itemCount: items.length,
-            itemBuilder: (context, index) {
-              return _KoleksiCard(
-                item: items[index],
-                onTap: () => _showDetail(context, items[index]),
-              );
-            },
-          );
-        },
-      ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator(color: _kPrimary))
+          : _items.isEmpty
+              ? _EmptyState(onAdd: () => _openForm(context, existing: null))
+              : RefreshIndicator(
+                  color: _kPrimary,
+                  onRefresh: _loadKoleksi,
+                  child: GridView.builder(
+                    padding: const EdgeInsets.all(16),
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      mainAxisSpacing: 12,
+                      crossAxisSpacing: 12,
+                      childAspectRatio: 0.75,
+                    ),
+                    itemCount: _items.length,
+                    itemBuilder: (context, index) {
+                      return _KoleksiCard(
+                        item: _items[index],
+                        onTap: () => _showDetail(context, _items[index]),
+                      );
+                    },
+                  ),
+                ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _openForm(context, existing: null),
         backgroundColor: _kPrimary,
@@ -118,13 +142,18 @@ class KoleksiScreen extends StatelessWidget {
     );
   }
 
-  void _openForm(BuildContext context, {KoleksiModel? existing}) {
-    showModalBottomSheet(
+  void _openForm(BuildContext context, {KoleksiModel? existing}) async {
+    await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => _KoleksiForm(existing: existing),
+      builder: (_) => _KoleksiForm(
+        userId: widget.userId,
+        existing: existing,
+        service: _service,
+      ),
     );
+    _loadKoleksi();
   }
 
   void _showDetail(BuildContext context, KoleksiModel item) {
@@ -157,7 +186,7 @@ class KoleksiScreen extends StatelessWidget {
           style: TextStyle(fontWeight: FontWeight.w700, color: _kTextPri),
         ),
         content: Text(
-          'Koleksi "${item.namaSepatu}" akan dihapus secara permanen.',
+          'Koleksi "\${item.namaSepatu}" akan dihapus secara permanen.',
           style: const TextStyle(color: _kTextMuted),
         ),
         actions: [
@@ -173,19 +202,22 @@ class KoleksiScreen extends StatelessWidget {
                 borderRadius: BorderRadius.circular(8),
               ),
             ),
-            onPressed: () {
-              item.delete();
-              Navigator.pop(ctx);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('"${item.namaSepatu}" dihapus'),
-                  backgroundColor: _kError,
-                  behavior: SnackBarBehavior.floating,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
+            onPressed: () async {
+              await _service.hapusKoleksi(item.id, item.userId);
+              if (ctx.mounted) Navigator.pop(ctx);
+              _loadKoleksi();
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('"\${item.namaSepatu}" dihapus'),
+                    backgroundColor: _kError,
+                    behavior: SnackBarBehavior.floating,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
                   ),
-                ),
-              );
+                );
+              }
             },
             child: const Text('Hapus'),
           ),
@@ -304,7 +336,7 @@ class _KoleksiCard extends StatelessWidget {
                     ? Image.file(
                         File(item.images.first),
                         fit: BoxFit.cover,
-                        errorBuilder: (_, _, _) => _imagePlaceholder(),
+                        errorBuilder: (_, __, ___) => _imagePlaceholder(),
                       )
                     : _imagePlaceholder(),
               ),
@@ -416,7 +448,7 @@ class _KoleksiDetailState extends State<_KoleksiDetail> {
                         child: Image.file(
                           File(imgs[_imgIdx]),
                           fit: BoxFit.cover,
-                          errorBuilder: (_, _, _) => Container(
+                          errorBuilder: (_, __, ___) => Container(
                             color: const Color(0xFFF3F0EC),
                             child: Icon(
                               MdiIcons.shoeSneaker,
@@ -434,7 +466,8 @@ class _KoleksiDetailState extends State<_KoleksiDetail> {
                         child: ListView.separated(
                           scrollDirection: Axis.horizontal,
                           itemCount: imgs.length,
-                          separatorBuilder: (_, _) => const SizedBox(width: 8),
+                          separatorBuilder: (_, __) =>
+                              const SizedBox(width: 8),
                           itemBuilder: (_, i) => GestureDetector(
                             onTap: () => setState(() => _imgIdx = i),
                             child: Container(
@@ -442,7 +475,8 @@ class _KoleksiDetailState extends State<_KoleksiDetail> {
                               decoration: BoxDecoration(
                                 borderRadius: BorderRadius.circular(8),
                                 border: Border.all(
-                                  color: _imgIdx == i ? _kPrimary : _kBorder,
+                                  color:
+                                      _imgIdx == i ? _kPrimary : _kBorder,
                                   width: _imgIdx == i ? 2 : 1,
                                 ),
                               ),
@@ -451,7 +485,7 @@ class _KoleksiDetailState extends State<_KoleksiDetail> {
                                 child: Image.file(
                                   File(imgs[i]),
                                   fit: BoxFit.cover,
-                                  errorBuilder: (_, _, _) => const Icon(
+                                  errorBuilder: (_, __, ___) => const Icon(
                                     Icons.broken_image_outlined,
                                     size: 24,
                                     color: _kTextMuted,
@@ -531,12 +565,9 @@ class _KoleksiDetailState extends State<_KoleksiDetail> {
                       ),
                     ),
                   ],
-                  // Jarak sebelum tombol aksi
                   const SizedBox(height: 28),
-                  // Divider pemisah
                   const Divider(height: 1, color: _kBorder),
                   const SizedBox(height: 16),
-                  // Tombol Edit dan Hapus
                   Row(
                     children: [
                       Expanded(
@@ -549,7 +580,8 @@ class _KoleksiDetailState extends State<_KoleksiDetail> {
                           ),
                           style: OutlinedButton.styleFrom(
                             foregroundColor: const Color(0xFF1976D2),
-                            side: const BorderSide(color: Color(0xFF1976D2)),
+                            side: const BorderSide(
+                                color: Color(0xFF1976D2)),
                             padding: const EdgeInsets.symmetric(vertical: 14),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
@@ -591,8 +623,15 @@ class _KoleksiDetailState extends State<_KoleksiDetail> {
 }
 
 class _KoleksiForm extends StatefulWidget {
+  final int userId;
   final KoleksiModel? existing;
-  const _KoleksiForm({this.existing});
+  final KoleksiService service;
+
+  const _KoleksiForm({
+    required this.userId,
+    required this.service,
+    this.existing,
+  });
 
   @override
   State<_KoleksiForm> createState() => _KoleksiFormState();
@@ -637,12 +676,9 @@ class _KoleksiFormState extends State<_KoleksiForm> {
     try {
       final files = await _picker.pickMultiImage(imageQuality: 85);
       if (files.isEmpty) return;
-
       setState(() {
         for (final file in files) {
-          if (!_images.contains(file.path)) {
-            _images.add(file.path);
-          }
+          if (!_images.contains(file.path)) _images.add(file.path);
         }
       });
     } catch (_) {
@@ -657,11 +693,8 @@ class _KoleksiFormState extends State<_KoleksiForm> {
         imageQuality: 85,
       );
       if (file == null) return;
-
       setState(() {
-        if (!_images.contains(file.path)) {
-          _images.add(file.path);
-        }
+        if (!_images.contains(file.path)) _images.add(file.path);
       });
     } catch (_) {
       _showSnack('Gagal mengambil foto dari kamera');
@@ -675,7 +708,8 @@ class _KoleksiFormState extends State<_KoleksiForm> {
         child: Wrap(
           children: [
             ListTile(
-              leading: const Icon(Icons.photo_library_rounded, color: _kPrimary),
+              leading:
+                  const Icon(Icons.photo_library_rounded, color: _kPrimary),
               title: const Text('Pilih dari galeri'),
               onTap: () {
                 Navigator.pop(context);
@@ -683,7 +717,8 @@ class _KoleksiFormState extends State<_KoleksiForm> {
               },
             ),
             ListTile(
-              leading: const Icon(Icons.photo_camera_rounded, color: _kPrimary),
+              leading:
+                  const Icon(Icons.photo_camera_rounded, color: _kPrimary),
               title: const Text('Ambil dari kamera'),
               onTap: () {
                 Navigator.pop(context);
@@ -696,9 +731,7 @@ class _KoleksiFormState extends State<_KoleksiForm> {
     );
   }
 
-  void _removeImage(int index) {
-    setState(() => _images.removeAt(index));
-  }
+  void _removeImage(int index) => setState(() => _images.removeAt(index));
 
   void _showSnack(String msg) {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -712,7 +745,6 @@ class _KoleksiFormState extends State<_KoleksiForm> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
-
     if (_images.isEmpty) {
       _showSnack('Minimal pilih 1 foto sepatu');
       return;
@@ -720,7 +752,6 @@ class _KoleksiFormState extends State<_KoleksiForm> {
 
     setState(() => _isLoading = true);
 
-    final box = Hive.box<KoleksiModel>('koleksi');
     final harga =
         double.tryParse(
           _hargaCtrl.text.replaceAll('.', '').replaceAll(',', '.'),
@@ -728,19 +759,24 @@ class _KoleksiFormState extends State<_KoleksiForm> {
         0.0;
 
     if (_isEdit) {
-      final e = widget.existing!;
-      e.namaSepatu = _namaCtrl.text.trim();
-      e.merek = _merekCtrl.text.trim();
-      e.harga = harga;
-      e.keterangan = _ketCtrl.text.trim();
-      e.images = List.from(_images);
-      await e.save();
+      final updated = KoleksiModel(
+        id: widget.existing!.id,
+        userId: widget.userId,
+        namaSepatu: _namaCtrl.text.trim(),
+        merek: _merekCtrl.text.trim(),
+        harga: harga,
+        keterangan: _ketCtrl.text.trim(),
+        images: List.from(_images),
+        createdAt: widget.existing!.createdAt,
+      );
+      await widget.service.updateKoleksi(updated);
     } else {
       final id =
           DateTime.now().millisecondsSinceEpoch.toString() +
           Random().nextInt(9999).toString();
       final koleksi = KoleksiModel(
         id: id,
+        userId: widget.userId,
         namaSepatu: _namaCtrl.text.trim(),
         merek: _merekCtrl.text.trim(),
         harga: harga,
@@ -748,7 +784,7 @@ class _KoleksiFormState extends State<_KoleksiForm> {
         images: List.from(_images),
         createdAt: DateTime.now(),
       );
-      await box.put(id, koleksi);
+      await widget.service.tambahKoleksi(koleksi);
     }
 
     setState(() => _isLoading = false);
@@ -805,7 +841,8 @@ class _KoleksiFormState extends State<_KoleksiForm> {
                   const Spacer(),
                   IconButton(
                     onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.close_rounded, color: _kTextMuted),
+                    icon:
+                        const Icon(Icons.close_rounded, color: _kTextMuted),
                   ),
                 ],
               ),
@@ -822,18 +859,20 @@ class _KoleksiFormState extends State<_KoleksiForm> {
                     _FormField(
                       controller: _namaCtrl,
                       hint: 'e.g. Air Jordan 1 Retro High',
-                      validator: (v) => (v == null || v.trim().isEmpty)
-                          ? 'Wajib diisi'
-                          : null,
+                      validator: (v) =>
+                          (v == null || v.trim().isEmpty)
+                              ? 'Wajib diisi'
+                              : null,
                     ),
                     const SizedBox(height: 16),
                     _FieldLabel('Merek *'),
                     _FormField(
                       controller: _merekCtrl,
                       hint: 'e.g. Nike, Adidas, New Balance',
-                      validator: (v) => (v == null || v.trim().isEmpty)
-                          ? 'Wajib diisi'
-                          : null,
+                      validator: (v) =>
+                          (v == null || v.trim().isEmpty)
+                              ? 'Wajib diisi'
+                              : null,
                     ),
                     const SizedBox(height: 16),
                     _FieldLabel('Harga (Rp) *'),
@@ -841,9 +880,13 @@ class _KoleksiFormState extends State<_KoleksiForm> {
                       controller: _hargaCtrl,
                       hint: 'e.g. 1500000',
                       keyboardType: TextInputType.number,
-                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                      inputFormatters: [
+                        FilteringTextInputFormatter.digitsOnly
+                      ],
                       validator: (v) {
-                        if (v == null || v.trim().isEmpty) return 'Wajib diisi';
+                        if (v == null || v.trim().isEmpty) {
+                          return 'Wajib diisi';
+                        }
                         if (double.tryParse(v) == null) {
                           return 'Masukkan angka yang valid';
                         }
@@ -873,12 +916,14 @@ class _KoleksiFormState extends State<_KoleksiForm> {
                         Expanded(
                           child: OutlinedButton.icon(
                             onPressed: _showImageSourcePicker,
-                            icon: const Icon(Icons.add_photo_alternate_rounded),
+                            icon: const Icon(
+                                Icons.add_photo_alternate_rounded),
                             label: const Text('Tambah Foto'),
                             style: OutlinedButton.styleFrom(
                               foregroundColor: _kPrimary,
                               side: const BorderSide(color: _kPrimary),
-                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              padding: const EdgeInsets.symmetric(
+                                  vertical: 14),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12),
                               ),
@@ -894,7 +939,8 @@ class _KoleksiFormState extends State<_KoleksiForm> {
                         child: ListView.separated(
                           scrollDirection: Axis.horizontal,
                           itemCount: _images.length,
-                          separatorBuilder: (_, _) => const SizedBox(width: 8),
+                          separatorBuilder: (_, __) =>
+                              const SizedBox(width: 8),
                           itemBuilder: (_, i) => Stack(
                             children: [
                               ClipRRect(
@@ -904,7 +950,7 @@ class _KoleksiFormState extends State<_KoleksiForm> {
                                   width: 96,
                                   height: 96,
                                   fit: BoxFit.cover,
-                                  errorBuilder: (_, _, _) => Container(
+                                  errorBuilder: (_, __, ___) => Container(
                                     width: 96,
                                     height: 96,
                                     color: const Color(0xFFF3F0EC),
@@ -963,7 +1009,9 @@ class _KoleksiFormState extends State<_KoleksiForm> {
                                 ),
                               )
                             : Text(
-                                _isEdit ? 'Simpan Perubahan' : 'Simpan Koleksi',
+                                _isEdit
+                                    ? 'Simpan Perubahan'
+                                    : 'Simpan Koleksi',
                                 style: const TextStyle(
                                   fontSize: 15,
                                   fontWeight: FontWeight.w700,
