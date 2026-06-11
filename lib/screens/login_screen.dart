@@ -7,6 +7,10 @@
 //   - Username diambil otomatis dari riwayat login terakhir (Hive 'settings')
 //   - Saat login password berhasil, username disimpan ke storage
 //   - Pesan error yang jelas jika belum pernah login sebelumnya
+//
+// Fix v4.1:
+//   - Tambah await pada _authService.getLastLoggedInUsername() [async Future<String?>]
+//   - Tambah await pada _authService.login() [async Future<UserModel?>]
 // =============================================================================
 
 import 'package:flutter/material.dart';
@@ -97,7 +101,8 @@ class _LoginScreenState extends State<LoginScreen>
 
     await Future.delayed(const Duration(milliseconds: 600));
 
-    final user = _authService.login(
+    // FIX: tambah await — login() adalah async Future<UserModel?>
+    final user = await _authService.login(
       username: _usernameController.text,
       password: _passwordController.text,
     );
@@ -130,8 +135,8 @@ class _LoginScreenState extends State<LoginScreen>
   /// Login menggunakan biometrik (fingerprint) — tidak perlu input username.
   /// Username diambil otomatis dari riwayat login terakhir yang tersimpan.
   Future<void> _handleBiometricLogin() async {
-    // Ambil username dari riwayat login terakhir — user tidak perlu mengetik apapun
-    final savedUsername = _authService.getLastLoggedInUsername();
+    // FIX: tambah await — getLastLoggedInUsername() adalah async Future<String?>
+    final savedUsername = await _authService.getLastLoggedInUsername();
 
     if (savedUsername == null || savedUsername.isEmpty) {
       setState(() {
@@ -156,7 +161,8 @@ class _LoginScreenState extends State<LoginScreen>
     setState(() => _isBiometricLoading = false);
 
     if (result.success) {
-      final user = _authService.getUserByUsername(savedUsername);
+      final user = await _authService.getUserByUsername(savedUsername);
+      if (!mounted) return;
       if (user != null) {
         Navigator.pushReplacement(
           context,
