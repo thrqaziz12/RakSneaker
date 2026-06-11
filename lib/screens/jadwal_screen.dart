@@ -9,7 +9,6 @@
 
 import 'package:flutter/material.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../models/jadwal_model.dart';
 import '../services/jadwal_service.dart';
 import '../services/notification_service.dart';
@@ -26,7 +25,8 @@ const _kBorder = Color(0xFFE8E0DB);
 const int _kNotifMinutesBefore = 30;
 
 class JadwalScreen extends StatefulWidget {
-  const JadwalScreen({super.key});
+  final int userId;
+  const JadwalScreen({super.key, required this.userId});
 
   @override
   State<JadwalScreen> createState() => _JadwalScreenState();
@@ -36,24 +36,15 @@ class _JadwalScreenState extends State<JadwalScreen> {
   final JadwalService _jadwalService = JadwalService();
   final NotificationService _notifService = NotificationService();
   List<JadwalModel> _jadwalList = [];
-  int _userId = 0;
 
   @override
   void initState() {
     super.initState();
-    _initUserId();
-  }
-
-  /// Ambil userId dari SharedPreferences lalu muat jadwal.
-  Future<void> _initUserId() async {
-    final prefs = await SharedPreferences.getInstance();
-    // TODO: Sesuaikan key 'userId' dengan key yang dipakai di AuthService.
-    _userId = prefs.getInt('userId') ?? 0;
-    await _loadJadwal();
+    _loadJadwal();
   }
 
   Future<void> _loadJadwal() async {
-    final list = await _jadwalService.getAllJadwal(_userId);
+    final list = await _jadwalService.getAllJadwal(widget.userId);
     if (mounted) {
       setState(() {
         _jadwalList = list;
@@ -92,7 +83,7 @@ class _JadwalScreenState extends State<JadwalScreen> {
     );
     if (confirm == true) {
       await _notifService.cancelJadwalNotification(jadwal.id);
-      await _jadwalService.hapusJadwal(jadwal.id, _userId);
+      await _jadwalService.hapusJadwal(jadwal.id, widget.userId);
       await _loadJadwal();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -115,7 +106,7 @@ class _JadwalScreenState extends State<JadwalScreen> {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) => _TambahJadwalSheet(
-        userId: _userId,
+        userId: widget.userId,
         onSave: (jadwal) async {
           await _jadwalService.tambahJadwal(jadwal);
           await _notifService.scheduleJadwalNotification(
@@ -316,7 +307,7 @@ class _JadwalScreenState extends State<JadwalScreen> {
                 '${list.length}',
                 style: TextStyle(
                   fontSize: 12,
-                  fontWeight: FontWeight.w600,
+                  fontWeight: FontWeight.w700,
                   color: isPast ? _kTextMuted : _kPrimary,
                 ),
               ),
@@ -324,74 +315,55 @@ class _JadwalScreenState extends State<JadwalScreen> {
           ],
         ),
       ),
-      ...list.map(
-        (jadwal) => _JadwalCard(
-          jadwal: jadwal,
-          isPast: isPast,
-          onDelete: () => _hapusJadwal(jadwal),
-        ),
-      ),
+      ...list.map((j) => _buildJadwalCard(j, isPast)),
     ];
   }
-}
 
-// ---------------------------------------------------------------------------
-// _JadwalCard — Widget kartu untuk satu item jadwal
-// ---------------------------------------------------------------------------
-class _JadwalCard extends StatelessWidget {
-  final JadwalModel jadwal;
-  final bool isPast;
-  final VoidCallback onDelete;
-
-  const _JadwalCard({
-    required this.jadwal,
-    required this.isPast,
-    required this.onDelete,
-  });
-
-  String _formatTanggal(DateTime dt) {
+  Widget _buildJadwalCard(JadwalModel jadwal, bool isPast) {
+    final dt = jadwal.tanggalWaktu;
+    final timeStr =
+        '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
     const bulan = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'Mei',
-      'Jun',
-      'Jul',
-      'Agt',
-      'Sep',
-      'Okt',
-      'Nov',
-      'Des',
+      'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
+      'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des',
     ];
-    return '${dt.day} ${bulan[dt.month - 1]} ${dt.year}';
-  }
+    final dateStr = '${dt.day} ${bulan[dt.month - 1]} ${dt.year}';
 
-  String _formatWaktu(DateTime dt) {
-    final h = dt.hour.toString().padLeft(2, '0');
-    final m = dt.minute.toString().padLeft(2, '0');
-    return '$h:$m WIB';
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      child: Container(
+    return Dismissible(
+      key: Key(jadwal.id),
+      direction: DismissDirection.endToStart,
+      background: Container(
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 24),
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
         decoration: BoxDecoration(
-          color: isPast ? const Color(0xFFF5F5F5) : _kSurface,
+          color: Colors.red.shade400,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: const Icon(Icons.delete_rounded, color: Colors.white, size: 28),
+      ),
+      confirmDismiss: (_) async {
+        await _hapusJadwal(jadwal);
+        return false;
+      },
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+        decoration: BoxDecoration(
+          color: _kSurface,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: isPast ? const Color(0xFFE0E0E0) : _kBorder,
-            width: 1,
+            color: isPast
+                ? _kBorder
+                : _kPrimary.withValues(alpha: 0.25),
+            width: isPast ? 1 : 1.5,
           ),
           boxShadow: isPast
               ? null
               : [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.05),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
+                    color: _kPrimary.withValues(alpha: 0.08),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
                   ),
                 ],
         ),
@@ -401,25 +373,24 @@ class _JadwalCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Icon sneaker
                   Container(
-                    width: 44,
-                    height: 44,
+                    width: 48,
+                    height: 48,
                     decoration: BoxDecoration(
                       color: isPast
-                          ? const Color(0xFFE0E0E0)
-                          : _kPrimary.withValues(alpha: 0.12),
+                          ? const Color(0xFFEEEEEE)
+                          : _kPrimary.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Icon(
                       MdiIcons.shoeSneaker,
+                      size: 26,
                       color: isPast ? _kTextMuted : _kPrimary,
-                      size: 24,
                     ),
                   ),
                   const SizedBox(width: 12),
-                  // Nama + merek
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -427,72 +398,68 @@ class _JadwalCard extends StatelessWidget {
                         Text(
                           jadwal.namaSepatu,
                           style: TextStyle(
-                            fontSize: 16,
+                            fontSize: 15,
                             fontWeight: FontWeight.w700,
                             color: isPast ? _kTextMuted : _kTextPrimary,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
-                        const SizedBox(height: 2),
+                        const SizedBox(height: 3),
                         Text(
                           jadwal.merekSepatu,
-                          style: TextStyle(
+                          style: const TextStyle(
                             fontSize: 13,
-                            color: isPast ? _kTextMuted : _kPrimary,
-                            fontWeight: FontWeight.w500,
+                            color: _kTextMuted,
                           ),
                         ),
                       ],
                     ),
                   ),
-                  // Tombol hapus
-                  IconButton(
-                    onPressed: onDelete,
-                    icon: const Icon(
-                      Icons.delete_outline_rounded,
-                      color: Color(0xFFE57373),
-                    ),
-                    tooltip: 'Hapus jadwal',
-                    style: IconButton.styleFrom(
-                      backgroundColor: const Color(0xFFFFEBEE),
-                      shape: RoundedRectangleBorder(
+                  GestureDetector(
+                    onTap: () => _hapusJadwal(jadwal),
+                    child: Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: Colors.red.withValues(alpha: 0.08),
                         borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Icon(
+                        Icons.delete_outline_rounded,
+                        size: 18,
+                        color: Colors.red.shade400,
                       ),
                     ),
                   ),
                 ],
               ),
               const SizedBox(height: 12),
-              const Divider(color: _kBorder, height: 1),
-              const SizedBox(height: 12),
-              // Tanggal + Waktu
               Row(
                 children: [
                   _InfoChip(
                     icon: Icons.calendar_today_rounded,
-                    label: _formatTanggal(jadwal.tanggalWaktu),
+                    label: dateStr,
                     isPast: isPast,
                   ),
                   const SizedBox(width: 8),
                   _InfoChip(
                     icon: Icons.access_time_rounded,
-                    label: _formatWaktu(jadwal.tanggalWaktu),
+                    label: timeStr,
                     isPast: isPast,
                   ),
                 ],
               ),
-              if (jadwal.keterangan.isNotEmpty) ...[
+              if (jadwal.keterangan.isNotEmpty) ...[  
                 const SizedBox(height: 10),
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Icon(
                       Icons.notes_rounded,
-                      size: 15,
-                      color: isPast ? _kTextMuted : _kTextMuted,
+                      size: 14,
+                      color: _kTextMuted,
                     ),
-                    const SizedBox(width: 6),
+                    const SizedBox(width: 5),
                     Expanded(
                       child: Text(
                         jadwal.keterangan,
@@ -820,60 +787,33 @@ class _TambahJadwalSheetState extends State<_TambahJadwalSheet> {
               TextFormField(
                 controller: _keteranganCtrl,
                 maxLines: 3,
+                style: const TextStyle(fontSize: 14, color: _kTextPrimary),
                 decoration: InputDecoration(
-                  hintText: 'Contoh: Cuci pakai sabun khusus, sikat halus...',
-                  hintStyle: const TextStyle(color: _kTextMuted, fontSize: 14),
+                  hintText: 'Catatan perawatan (opsional)',
+                  hintStyle:
+                      const TextStyle(color: _kTextMuted, fontSize: 14),
                   filled: true,
-                  fillColor: _kBg,
-                  contentPadding: const EdgeInsets.all(14),
+                  fillColor: const Color(0xFFFAF8F6),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 12,
+                  ),
                   border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(10),
                     borderSide: const BorderSide(color: _kBorder),
                   ),
                   enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(10),
                     borderSide: const BorderSide(color: _kBorder),
                   ),
                   focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: _kPrimary, width: 1.5),
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide:
+                        const BorderSide(color: _kPrimary, width: 1.5),
                   ),
                 ),
               ),
-              const SizedBox(height: 12),
-              // Info notifikasi
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: _kPrimary.withValues(alpha: 0.07),
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: _kPrimary.withValues(alpha: 0.2)),
-                ),
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.notifications_active_rounded,
-                      color: _kPrimary,
-                      size: 18,
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        _kNotifMinutesBefore == 0
-                            ? 'Notifikasi otomatis akan muncul tepat saat waktu perawatan.'
-                            : 'Notifikasi otomatis akan muncul $_kNotifMinutesBefore menit sebelum waktu perawatan.',
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: _kPrimary,
-                          fontWeight: FontWeight.w500,
-                          height: 1.4,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 28),
               // Tombol Simpan
               SizedBox(
                 width: double.infinity,
@@ -881,7 +821,7 @@ class _TambahJadwalSheetState extends State<_TambahJadwalSheet> {
                   style: FilledButton.styleFrom(
                     backgroundColor: _kPrimary,
                     foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 15),
+                    padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -889,10 +829,10 @@ class _TambahJadwalSheetState extends State<_TambahJadwalSheet> {
                   onPressed: _isSaving ? null : _submit,
                   child: _isSaving
                       ? const SizedBox(
-                          width: 20,
-                          height: 20,
+                          width: 22,
+                          height: 22,
                           child: CircularProgressIndicator(
-                            strokeWidth: 2,
+                            strokeWidth: 2.5,
                             color: Colors.white,
                           ),
                         )
@@ -926,7 +866,7 @@ class _TambahJadwalSheetState extends State<_TambahJadwalSheet> {
         if (required)
           const Text(
             ' *',
-            style: TextStyle(color: Color(0xFFE53935), fontSize: 14),
+            style: TextStyle(color: _kPrimary, fontWeight: FontWeight.w700),
           ),
       ],
     );
@@ -940,42 +880,46 @@ class _TambahJadwalSheetState extends State<_TambahJadwalSheet> {
   }) {
     return TextFormField(
       controller: controller,
+      style: const TextStyle(fontSize: 14, color: _kTextPrimary),
       validator: validator,
       decoration: InputDecoration(
         hintText: hint,
         hintStyle: const TextStyle(color: _kTextMuted, fontSize: 14),
         prefixIcon: Icon(icon, color: _kTextMuted, size: 20),
         filled: true,
-        fillColor: _kBg,
+        fillColor: const Color(0xFFFAF8F6),
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 14,
           vertical: 14,
         ),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(10),
           borderSide: const BorderSide(color: _kBorder),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(10),
           borderSide: const BorderSide(color: _kBorder),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(10),
           borderSide: const BorderSide(color: _kPrimary, width: 1.5),
         ),
         errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFFE53935)),
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: Colors.red),
         ),
         focusedErrorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFFE53935), width: 1.5),
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: Colors.red, width: 1.5),
         ),
       ),
     );
   }
 }
 
+// ---------------------------------------------------------------------------
+// _PickerButton — tombol pemilih tanggal / waktu
+// ---------------------------------------------------------------------------
 class _PickerButton extends StatelessWidget {
   final IconData icon;
   final String label;
@@ -994,26 +938,33 @@ class _PickerButton extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 13),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
         decoration: BoxDecoration(
-          color: hasValue ? _kPrimary.withValues(alpha: 0.07) : _kBg,
-          borderRadius: BorderRadius.circular(12),
+          color: hasValue
+              ? _kPrimary.withValues(alpha: 0.06)
+              : const Color(0xFFFAF8F6),
+          borderRadius: BorderRadius.circular(10),
           border: Border.all(
             color: hasValue ? _kPrimary : _kBorder,
-            width: hasValue ? 1.5 : 1,
+            width: hasValue ? 1.5 : 1.0,
           ),
         ),
         child: Row(
           children: [
-            Icon(icon, size: 16, color: hasValue ? _kPrimary : _kTextMuted),
+            Icon(
+              icon,
+              size: 16,
+              color: hasValue ? _kPrimary : _kTextMuted,
+            ),
             const SizedBox(width: 8),
             Expanded(
               child: Text(
                 label,
                 style: TextStyle(
                   fontSize: 13,
-                  fontWeight: hasValue ? FontWeight.w600 : FontWeight.normal,
-                  color: hasValue ? _kPrimary : _kTextMuted,
+                  color: hasValue ? _kTextPrimary : _kTextMuted,
+                  fontWeight:
+                      hasValue ? FontWeight.w600 : FontWeight.normal,
                 ),
                 overflow: TextOverflow.ellipsis,
               ),
