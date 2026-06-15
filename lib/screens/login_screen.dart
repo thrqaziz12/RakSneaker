@@ -17,25 +17,29 @@
 //
 // Fix v4.3:
 //   - Hapus Future.delayed(600ms) yang tidak perlu di _handleLogin()
+//
+// v5 — Session:
+//   - Simpan sesi via SessionService setelah login password maupun biometrik
 // =============================================================================
 
 import 'package:flutter/material.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 import '../services/auth_service.dart';
 import '../services/biometric_service.dart';
+import '../services/session_service.dart';
 import 'register_screen.dart';
 import 'main_screen.dart';
 
-const kPrimaryColor = Color(0xFFFF6B35);
-const kPrimaryDark  = Color(0xFFD94F1A);
-const kBgLight      = Color(0xFFFFF8F5);
-const kSurfaceLight = Color(0xFFFFFFFF);
+const kPrimaryColor  = Color(0xFFFF6B35);
+const kPrimaryDark   = Color(0xFFD94F1A);
+const kBgLight       = Color(0xFFFFF8F5);
+const kSurfaceLight  = Color(0xFFFFFFFF);
 const kSurfaceAccent = Color(0xFFFFF0E8);
-const kTextPrimary  = Color(0xFF1A1A1A);
-const kTextMuted    = Color(0xFF6B6B6B);
-const kTextFaint    = Color(0xFFB0B0B0);
-const kBorderColor  = Color(0xFFE8E0DB);
-const kErrorColor   = Color(0xFFD92B4B);
+const kTextPrimary   = Color(0xFF1A1A1A);
+const kTextMuted     = Color(0xFF6B6B6B);
+const kTextFaint     = Color(0xFFB0B0B0);
+const kBorderColor   = Color(0xFFE8E0DB);
+const kErrorColor    = Color(0xFFD92B4B);
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -46,21 +50,22 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen>
     with SingleTickerProviderStateMixin {
-  final _formKey = GlobalKey<FormState>();
+  final _formKey            = GlobalKey<FormState>();
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
-  final _authService = AuthService();
-  final _biometricService = BiometricService();
+  final _authService        = AuthService();
+  final _biometricService   = BiometricService();
+  final _sessionService     = SessionService();
 
-  bool _isLoading = false;
-  bool _isBiometricLoading = false;
-  bool _obscurePassword = true;
+  bool    _isLoading          = false;
+  bool    _isBiometricLoading = false;
+  bool    _obscurePassword    = true;
   String? _errorMessage;
-  bool _isBiometricAvailable = false;
+  bool    _isBiometricAvailable = false;
 
   late AnimationController _animController;
-  late Animation<double> _fadeAnimation;
-  late Animation<Offset> _slideAnimation;
+  late Animation<double>   _fadeAnimation;
+  late Animation<Offset>   _slideAnimation;
 
   @override
   void initState() {
@@ -69,7 +74,7 @@ class _LoginScreenState extends State<LoginScreen>
       vsync: this,
       duration: const Duration(milliseconds: 800),
     );
-    _fadeAnimation = CurvedAnimation(
+    _fadeAnimation  = CurvedAnimation(
       parent: _animController,
       curve: Curves.easeOut,
     );
@@ -83,7 +88,7 @@ class _LoginScreenState extends State<LoginScreen>
 
   Future<void> _checkBiometricAvailability() async {
     final supported = await _biometricService.isDeviceSupported();
-    final enrolled = await _biometricService.canCheckBiometrics();
+    final enrolled  = await _biometricService.canCheckBiometrics();
     if (mounted) {
       setState(() => _isBiometricAvailable = supported && enrolled);
     }
@@ -101,29 +106,28 @@ class _LoginScreenState extends State<LoginScreen>
     if (!_formKey.currentState!.validate()) return;
 
     setState(() {
-      _isLoading = true;
+      _isLoading    = true;
       _errorMessage = null;
     });
 
-    // FIX v4.3: Future.delayed(600ms) dihapus — tidak memberikan manfaat
-    // dan hanya menambah latensi yang tidak perlu sebelum request login.
-
-    // FIX v4.1: tambah await — login() adalah async Future<UserModel?>
     final user = await _authService.login(
       username: _usernameController.text,
       password: _passwordController.text,
     );
 
-    // Guard: pastikan widget masih terpasang setelah await
     if (!mounted) return;
-
     setState(() => _isLoading = false);
 
     if (user != null) {
-      // Simpan username agar bisa digunakan untuk login biometrik berikutnya
+      // Simpan username untuk login biometrik berikutnya
       await _authService.saveLastLoggedInUsername(user.username);
 
-      // Guard setelah await kedua sebelum menggunakan context
+      // Simpan sesi agar tidak perlu login ulang saat buka app
+      await _sessionService.saveSession(
+        username: user.username,
+        userId:   user.id ?? 0,
+      );
+
       if (!mounted) return;
 
       Navigator.pushReplacement(
@@ -131,7 +135,7 @@ class _LoginScreenState extends State<LoginScreen>
         MaterialPageRoute(
           builder: (_) => MainScreen(
             username: user.username,
-            userId: user.id ?? 0,
+            userId:   user.id ?? 0,
           ),
         ),
       );
@@ -145,7 +149,6 @@ class _LoginScreenState extends State<LoginScreen>
   /// Login menggunakan biometrik (fingerprint) — tidak perlu input username.
   /// Username diambil otomatis dari riwayat login terakhir yang tersimpan.
   Future<void> _handleBiometricLogin() async {
-    // FIX v4.1: tambah await — getLastLoggedInUsername() adalah async Future<String?>
     final savedUsername = await _authService.getLastLoggedInUsername();
 
     if (savedUsername == null || savedUsername.isEmpty) {
@@ -159,7 +162,7 @@ class _LoginScreenState extends State<LoginScreen>
 
     setState(() {
       _isBiometricLoading = true;
-      _errorMessage = null;
+      _errorMessage       = null;
     });
 
     final result = await _biometricService.authenticate(
@@ -167,24 +170,30 @@ class _LoginScreenState extends State<LoginScreen>
     );
 
     if (!mounted) return;
-
     setState(() => _isBiometricLoading = false);
 
     if (result.success) {
       final user = await _authService.getUserByUsername(savedUsername);
       if (!mounted) return;
       if (user != null) {
+        // Simpan sesi untuk login biometrik
+        await _sessionService.saveSession(
+          username: user.username,
+          userId:   user.id ?? 0,
+        );
+
+        if (!mounted) return;
+
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
             builder: (_) => MainScreen(
               username: user.username,
-              userId: user.id ?? 0,
+              userId:   user.id ?? 0,
             ),
           ),
         );
       } else {
-        // Akun tidak ditemukan (misalnya sudah dihapus)
         setState(() {
           _errorMessage =
               'Akun tidak ditemukan. Silakan login dengan username & password.';
@@ -578,7 +587,8 @@ class _LoginScreenState extends State<LoginScreen>
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: kPrimaryColor, width: 1.5),
+              borderSide:
+                  const BorderSide(color: kPrimaryColor, width: 1.5),
             ),
             errorBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
@@ -586,7 +596,8 @@ class _LoginScreenState extends State<LoginScreen>
             ),
             focusedErrorBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: kErrorColor, width: 1.5),
+              borderSide:
+                  const BorderSide(color: kErrorColor, width: 1.5),
             ),
             errorStyle: const TextStyle(color: kErrorColor),
             contentPadding: const EdgeInsets.symmetric(

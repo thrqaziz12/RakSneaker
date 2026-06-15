@@ -13,23 +13,27 @@
 //   Menggunakan navigatorKey global dari main.dart agar navigasi logout
 //   tidak bergantung pada BuildContext yang bisa sudah tidak valid
 //   ketika ProfileScreen berada di dalam IndexedStack.
+//
+// v5 — Session:
+//   Hapus sesi via SessionService saat logout dilakukan.
 // =============================================================================
 
 import 'package:flutter/material.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 import '../main.dart' show navigatorKey;
+import '../services/session_service.dart';
 import 'fingerprint_screen.dart';
 import 'login_screen.dart';
 
-const _kPrimary = Color(0xFFFF6B35);
-const _kBg = Color(0xFFFFF8F5);
-const _kSurface = Color(0xFFFFFFFF);
+const _kPrimary       = Color(0xFFFF6B35);
+const _kBg            = Color(0xFFFFF8F5);
+const _kSurface       = Color(0xFFFFFFFF);
 const _kSurfaceAccent = Color(0xFFFFF0E8);
-const _kTextPrimary = Color(0xFF1A1A1A);
-const _kTextMuted = Color(0xFF6B6B6B);
-const _kTextFaint = Color(0xFFB0B0B0);
-const _kBorder = Color(0xFFE8E0DB);
-const _kError = Color(0xFFD92B4B);
+const _kTextPrimary   = Color(0xFF1A1A1A);
+const _kTextMuted     = Color(0xFF6B6B6B);
+const _kTextFaint     = Color(0xFFB0B0B0);
+const _kBorder        = Color(0xFFE8E0DB);
+const _kError         = Color(0xFFD92B4B);
 
 class ProfileScreen extends StatelessWidget {
   final String username;
@@ -60,7 +64,8 @@ class ProfileScreen extends StatelessWidget {
                 ),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: Icon(MdiIcons.shoeSneaker, color: Colors.white, size: 18),
+              child:
+                  Icon(MdiIcons.shoeSneaker, color: Colors.white, size: 18),
             ),
             const SizedBox(width: 10),
             const Text(
@@ -185,16 +190,18 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  void _showLogoutDialog(BuildContext context) {
+  Future<void> _showLogoutDialog(BuildContext context) async {
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (ctx) => AlertDialog(
         backgroundColor: _kSurface,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text(
           'Logout',
-          style: TextStyle(color: _kTextPrimary, fontWeight: FontWeight.bold),
+          style:
+              TextStyle(color: _kTextPrimary, fontWeight: FontWeight.bold),
         ),
         content: const Text(
           'Yakin ingin keluar dari akun ini?',
@@ -203,7 +210,8 @@ class ProfileScreen extends StatelessWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Batal', style: TextStyle(color: _kTextMuted)),
+            child:
+                const Text('Batal', style: TextStyle(color: _kTextMuted)),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
@@ -213,9 +221,13 @@ class ProfileScreen extends StatelessWidget {
                 borderRadius: BorderRadius.circular(10),
               ),
             ),
-            onPressed: () {
-              // Tutup dialog
+            onPressed: () async {
+              // Tutup dialog terlebih dahulu
               Navigator.pop(ctx);
+
+              // Hapus sesi agar app tidak langsung masuk saat dibuka kembali
+              await SessionService().clearSession();
+
               // Gunakan global navigatorKey — dijamin tidak bergantung
               // pada BuildContext yang mungkin sudah tidak valid.
               navigatorKey.currentState!.pushAndRemoveUntil(
@@ -235,10 +247,10 @@ class ProfileScreen extends StatelessWidget {
 // Widget menu tile
 // ---------------------------------------------------------------------------
 class _MenuTile extends StatelessWidget {
-  final IconData icon;
-  final Color iconColor;
-  final String label;
-  final String sublabel;
+  final IconData     icon;
+  final Color        iconColor;
+  final String       label;
+  final String       sublabel;
   final VoidCallback onTap;
 
   const _MenuTile({
@@ -291,7 +303,8 @@ class _MenuTile extends StatelessWidget {
                     const SizedBox(height: 2),
                     Text(
                       sublabel,
-                      style: const TextStyle(color: _kTextMuted, fontSize: 12),
+                      style: const TextStyle(
+                          color: _kTextMuted, fontSize: 12),
                     ),
                   ],
                 ),
