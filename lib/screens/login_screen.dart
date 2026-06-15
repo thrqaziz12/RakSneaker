@@ -14,6 +14,9 @@
 //
 // Fix v4.2:
 //   - Teruskan user.id ke MainScreen sebagai parameter userId
+//
+// Fix v4.3:
+//   - Hapus Future.delayed(600ms) yang tidak perlu di _handleLogin()
 // =============================================================================
 
 import 'package:flutter/material.dart';
@@ -102,9 +105,10 @@ class _LoginScreenState extends State<LoginScreen>
       _errorMessage = null;
     });
 
-    await Future.delayed(const Duration(milliseconds: 600));
+    // FIX v4.3: Future.delayed(600ms) dihapus — tidak memberikan manfaat
+    // dan hanya menambah latensi yang tidak perlu sebelum request login.
 
-    // FIX: tambah await — login() adalah async Future<UserModel?>
+    // FIX v4.1: tambah await — login() adalah async Future<UserModel?>
     final user = await _authService.login(
       username: _usernameController.text,
       password: _passwordController.text,
@@ -141,7 +145,7 @@ class _LoginScreenState extends State<LoginScreen>
   /// Login menggunakan biometrik (fingerprint) — tidak perlu input username.
   /// Username diambil otomatis dari riwayat login terakhir yang tersimpan.
   Future<void> _handleBiometricLogin() async {
-    // FIX: tambah await — getLastLoggedInUsername() adalah async Future<String?>
+    // FIX v4.1: tambah await — getLastLoggedInUsername() adalah async Future<String?>
     final savedUsername = await _authService.getLastLoggedInUsername();
 
     if (savedUsername == null || savedUsername.isEmpty) {

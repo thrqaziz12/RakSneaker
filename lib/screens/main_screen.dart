@@ -6,10 +6,15 @@
 //   0 - Home     : Beranda koleksi sneaker
 //   1 - Koleksi  : Kelola koleksi sepatu pribadi (tambah/edit/hapus)
 //   2 - Jadwal   : Jadwal perawatan sepatu + local notification
-//   3 - Lokasi   : Peta toko sepatu (OpenStreetMap + Geolocation)
+//   3 - Lokasi   : Peta toko sepatu (Google Maps + Geolocation)
 //   4 - Profile  : Info akun + menu Sidik Jari
 //
 // Tema: Light Mode Sneaker — Oranye #FF6B35
+//
+// CATATAN PERFORMA:
+//   Menggunakan lazy-build agar LokasiScreen (Google Maps + GPS) hanya
+//   di-inisialisasi saat tab Lokasi pertama kali dibuka, bukan saat login.
+//   Ini mencegah UI freeze akibat permission request + map init di background.
 // =============================================================================
 
 import 'package:flutter/material.dart';
@@ -40,18 +45,25 @@ class _MainScreenState extends State<MainScreen>
     with SingleTickerProviderStateMixin {
   int _currentIndex = 0;
 
-  late final List<Widget> _pages;
+  // Track halaman mana yang sudah pernah dibuka (lazy-build).
+  // LokasiScreen (index 3) tidak akan di-build sampai user tap tab Lokasi.
+  final Set<int> _loadedPages = {0};
 
-  @override
-  void initState() {
-    super.initState();
-    _pages = [
-      HomeScreen(username: widget.username),
-      KoleksiScreen(userId: widget.userId),
-      JadwalScreen(userId: widget.userId),
-      const LokasiScreen(),
-      ProfileScreen(username: widget.username),
-    ];
+  Widget _buildPage(int index) {
+    switch (index) {
+      case 0:
+        return HomeScreen(username: widget.username);
+      case 1:
+        return KoleksiScreen(userId: widget.userId);
+      case 2:
+        return JadwalScreen(userId: widget.userId);
+      case 3:
+        return const LokasiScreen();
+      case 4:
+        return ProfileScreen(username: widget.username);
+      default:
+        return const SizedBox.shrink();
+    }
   }
 
   @override
@@ -59,7 +71,13 @@ class _MainScreenState extends State<MainScreen>
     return Scaffold(
       body: IndexedStack(
         index: _currentIndex,
-        children: _pages,
+        children: List.generate(5, (index) {
+          // Lazy: hanya render halaman yang sudah pernah dikunjungi
+          if (!_loadedPages.contains(index)) {
+            return const SizedBox.shrink();
+          }
+          return _buildPage(index);
+        }),
       ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
@@ -77,7 +95,13 @@ class _MainScreenState extends State<MainScreen>
         ),
         child: BottomNavigationBar(
           currentIndex: _currentIndex,
-          onTap: (i) => setState(() => _currentIndex = i),
+          onTap: (i) {
+            // Tandai halaman sebagai "sudah dimuat" saat pertama kali dibuka
+            setState(() {
+              _loadedPages.add(i);
+              _currentIndex = i;
+            });
+          },
           backgroundColor: kSurfaceLight,
           selectedItemColor: kPrimaryColor,
           unselectedItemColor: kTextMuted,
