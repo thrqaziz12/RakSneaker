@@ -416,7 +416,7 @@ class _LokasiScreenState extends State<LokasiScreen> {
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     scrollDirection: Axis.horizontal,
                     itemCount: daftarToko.length,
-                    separatorBuilder: (_, __) => const SizedBox(width: 10),
+                    separatorBuilder: (_, _) => const SizedBox(width: 10),
                     itemBuilder: (context, i) {
                       final toko = daftarToko[i];
                       final dipilih = _tokoIndex == i;

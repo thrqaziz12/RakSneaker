@@ -84,8 +84,9 @@ class _FingerprintScreenState extends State<FingerprintScreen>
 
   // Inisialisasi: ambil userId lalu load daftar sidik jari dari SQLite
   Future<void> _initData() async {
-    final UserModel? user =
-        await _authService.getUserByUsername(widget.username);
+    final UserModel? user = await _authService.getUserByUsername(
+      widget.username,
+    );
     if (user == null || user.id == null) {
       if (mounted) setState(() => _dbReady = true);
       return;
@@ -491,11 +492,7 @@ class _FingerprintScreenState extends State<FingerprintScreen>
       // Hapus dari SQLite berdasarkan id
       if (fp.id != null) {
         final db = await _dbHelper.database;
-        await db.delete(
-          'fingerprints',
-          where: 'id = ?',
-          whereArgs: [fp.id],
-        );
+        await db.delete('fingerprints', where: 'id = ?', whereArgs: [fp.id]);
       }
       await _loadFingerprints();
     }
@@ -695,7 +692,7 @@ class _FingerprintScreenState extends State<FingerprintScreen>
           child: ListView.separated(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
             itemCount: fps.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 10),
+            separatorBuilder: (_, _) => const SizedBox(height: 10),
             itemBuilder: (_, i) {
               final fp = fps[i];
               return _FingerprintTile(

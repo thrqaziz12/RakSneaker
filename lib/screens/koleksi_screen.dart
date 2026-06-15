@@ -107,28 +107,27 @@ class _KoleksiScreenState extends State<KoleksiScreen> {
       body: _isLoading
           ? const Center(child: CircularProgressIndicator(color: _kPrimary))
           : _items.isEmpty
-              ? _EmptyState(onAdd: () => _openForm(context, existing: null))
-              : RefreshIndicator(
-                  color: _kPrimary,
-                  onRefresh: _loadKoleksi,
-                  child: GridView.builder(
-                    padding: const EdgeInsets.all(16),
-                    gridDelegate:
-                        const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      mainAxisSpacing: 12,
-                      crossAxisSpacing: 12,
-                      childAspectRatio: 0.75,
-                    ),
-                    itemCount: _items.length,
-                    itemBuilder: (context, index) {
-                      return _KoleksiCard(
-                        item: _items[index],
-                        onTap: () => _showDetail(context, _items[index]),
-                      );
-                    },
-                  ),
+          ? _EmptyState(onAdd: () => _openForm(context, existing: null))
+          : RefreshIndicator(
+              color: _kPrimary,
+              onRefresh: _loadKoleksi,
+              child: GridView.builder(
+                padding: const EdgeInsets.all(16),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  mainAxisSpacing: 12,
+                  crossAxisSpacing: 12,
+                  childAspectRatio: 0.75,
                 ),
+                itemCount: _items.length,
+                itemBuilder: (context, index) {
+                  return _KoleksiCard(
+                    item: _items[index],
+                    onTap: () => _showDetail(context, _items[index]),
+                  );
+                },
+              ),
+            ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _openForm(context, existing: null),
         backgroundColor: _kPrimary,
@@ -299,10 +298,7 @@ class _KoleksiCard extends StatelessWidget {
   final KoleksiModel item;
   final VoidCallback onTap;
 
-  const _KoleksiCard({
-    required this.item,
-    required this.onTap,
-  });
+  const _KoleksiCard({required this.item, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -336,7 +332,7 @@ class _KoleksiCard extends StatelessWidget {
                     ? Image.file(
                         File(item.images.first),
                         fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => _imagePlaceholder(),
+                        errorBuilder: (_, _, _) => _imagePlaceholder(),
                       )
                     : _imagePlaceholder(),
               ),
@@ -448,7 +444,7 @@ class _KoleksiDetailState extends State<_KoleksiDetail> {
                         child: Image.file(
                           File(imgs[_imgIdx]),
                           fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => Container(
+                          errorBuilder: (_, _, _) => Container(
                             color: const Color(0xFFF3F0EC),
                             child: Icon(
                               MdiIcons.shoeSneaker,
@@ -466,8 +462,7 @@ class _KoleksiDetailState extends State<_KoleksiDetail> {
                         child: ListView.separated(
                           scrollDirection: Axis.horizontal,
                           itemCount: imgs.length,
-                          separatorBuilder: (_, __) =>
-                              const SizedBox(width: 8),
+                          separatorBuilder: (_, _) => const SizedBox(width: 8),
                           itemBuilder: (_, i) => GestureDetector(
                             onTap: () => setState(() => _imgIdx = i),
                             child: Container(
@@ -475,8 +470,7 @@ class _KoleksiDetailState extends State<_KoleksiDetail> {
                               decoration: BoxDecoration(
                                 borderRadius: BorderRadius.circular(8),
                                 border: Border.all(
-                                  color:
-                                      _imgIdx == i ? _kPrimary : _kBorder,
+                                  color: _imgIdx == i ? _kPrimary : _kBorder,
                                   width: _imgIdx == i ? 2 : 1,
                                 ),
                               ),
@@ -485,7 +479,7 @@ class _KoleksiDetailState extends State<_KoleksiDetail> {
                                 child: Image.file(
                                   File(imgs[i]),
                                   fit: BoxFit.cover,
-                                  errorBuilder: (_, __, ___) => const Icon(
+                                  errorBuilder: (_, _, _) => const Icon(
                                     Icons.broken_image_outlined,
                                     size: 24,
                                     color: _kTextMuted,
@@ -580,8 +574,7 @@ class _KoleksiDetailState extends State<_KoleksiDetail> {
                           ),
                           style: OutlinedButton.styleFrom(
                             foregroundColor: const Color(0xFF1976D2),
-                            side: const BorderSide(
-                                color: Color(0xFF1976D2)),
+                            side: const BorderSide(color: Color(0xFF1976D2)),
                             padding: const EdgeInsets.symmetric(vertical: 14),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
@@ -708,8 +701,10 @@ class _KoleksiFormState extends State<_KoleksiForm> {
         child: Wrap(
           children: [
             ListTile(
-              leading:
-                  const Icon(Icons.photo_library_rounded, color: _kPrimary),
+              leading: const Icon(
+                Icons.photo_library_rounded,
+                color: _kPrimary,
+              ),
               title: const Text('Pilih dari galeri'),
               onTap: () {
                 Navigator.pop(context);
@@ -717,8 +712,7 @@ class _KoleksiFormState extends State<_KoleksiForm> {
               },
             ),
             ListTile(
-              leading:
-                  const Icon(Icons.photo_camera_rounded, color: _kPrimary),
+              leading: const Icon(Icons.photo_camera_rounded, color: _kPrimary),
               title: const Text('Ambil dari kamera'),
               onTap: () {
                 Navigator.pop(context);
@@ -841,8 +835,7 @@ class _KoleksiFormState extends State<_KoleksiForm> {
                   const Spacer(),
                   IconButton(
                     onPressed: () => Navigator.pop(context),
-                    icon:
-                        const Icon(Icons.close_rounded, color: _kTextMuted),
+                    icon: const Icon(Icons.close_rounded, color: _kTextMuted),
                   ),
                 ],
               ),
@@ -859,20 +852,18 @@ class _KoleksiFormState extends State<_KoleksiForm> {
                     _FormField(
                       controller: _namaCtrl,
                       hint: 'e.g. Air Jordan 1 Retro High',
-                      validator: (v) =>
-                          (v == null || v.trim().isEmpty)
-                              ? 'Wajib diisi'
-                              : null,
+                      validator: (v) => (v == null || v.trim().isEmpty)
+                          ? 'Wajib diisi'
+                          : null,
                     ),
                     const SizedBox(height: 16),
                     _FieldLabel('Merek *'),
                     _FormField(
                       controller: _merekCtrl,
                       hint: 'e.g. Nike, Adidas, New Balance',
-                      validator: (v) =>
-                          (v == null || v.trim().isEmpty)
-                              ? 'Wajib diisi'
-                              : null,
+                      validator: (v) => (v == null || v.trim().isEmpty)
+                          ? 'Wajib diisi'
+                          : null,
                     ),
                     const SizedBox(height: 16),
                     _FieldLabel('Harga (Rp) *'),
@@ -880,9 +871,7 @@ class _KoleksiFormState extends State<_KoleksiForm> {
                       controller: _hargaCtrl,
                       hint: 'e.g. 1500000',
                       keyboardType: TextInputType.number,
-                      inputFormatters: [
-                        FilteringTextInputFormatter.digitsOnly
-                      ],
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                       validator: (v) {
                         if (v == null || v.trim().isEmpty) {
                           return 'Wajib diisi';
@@ -916,14 +905,12 @@ class _KoleksiFormState extends State<_KoleksiForm> {
                         Expanded(
                           child: OutlinedButton.icon(
                             onPressed: _showImageSourcePicker,
-                            icon: const Icon(
-                                Icons.add_photo_alternate_rounded),
+                            icon: const Icon(Icons.add_photo_alternate_rounded),
                             label: const Text('Tambah Foto'),
                             style: OutlinedButton.styleFrom(
                               foregroundColor: _kPrimary,
                               side: const BorderSide(color: _kPrimary),
-                              padding: const EdgeInsets.symmetric(
-                                  vertical: 14),
+                              padding: const EdgeInsets.symmetric(vertical: 14),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12),
                               ),
@@ -939,8 +926,7 @@ class _KoleksiFormState extends State<_KoleksiForm> {
                         child: ListView.separated(
                           scrollDirection: Axis.horizontal,
                           itemCount: _images.length,
-                          separatorBuilder: (_, __) =>
-                              const SizedBox(width: 8),
+                          separatorBuilder: (_, _) => const SizedBox(width: 8),
                           itemBuilder: (_, i) => Stack(
                             children: [
                               ClipRRect(
@@ -950,7 +936,7 @@ class _KoleksiFormState extends State<_KoleksiForm> {
                                   width: 96,
                                   height: 96,
                                   fit: BoxFit.cover,
-                                  errorBuilder: (_, __, ___) => Container(
+                                  errorBuilder: (_, _, _) => Container(
                                     width: 96,
                                     height: 96,
                                     color: const Color(0xFFF3F0EC),
@@ -1009,9 +995,7 @@ class _KoleksiFormState extends State<_KoleksiForm> {
                                 ),
                               )
                             : Text(
-                                _isEdit
-                                    ? 'Simpan Perubahan'
-                                    : 'Simpan Koleksi',
+                                _isEdit ? 'Simpan Perubahan' : 'Simpan Koleksi',
                                 style: const TextStyle(
                                   fontSize: 15,
                                   fontWeight: FontWeight.w700,
