@@ -180,8 +180,13 @@ class ProfileScreen extends StatelessWidget {
   }
 
   void _showLogoutDialog(BuildContext context) {
+    // Simpan navigator reference SEBELUM dialog dibuka,
+    // agar tetap valid meski widget sudah di-dispose oleh IndexedStack.
+    final navigator = Navigator.of(context, rootNavigator: true);
+
     showDialog(
       context: context,
+      barrierDismissible: false,
       builder: (ctx) => AlertDialog(
         backgroundColor: _kSurface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -207,9 +212,11 @@ class ProfileScreen extends StatelessWidget {
               ),
             ),
             onPressed: () {
+              // Tutup dialog dulu
               Navigator.pop(ctx);
-              Navigator.pushAndRemoveUntil(
-                context,
+              // Gunakan rootNavigator agar keluar dari seluruh stack
+              // termasuk IndexedStack di MainScreen
+              navigator.pushAndRemoveUntil(
                 MaterialPageRoute(builder: (_) => const LoginScreen()),
                 (_) => false,
               );
