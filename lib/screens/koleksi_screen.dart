@@ -203,20 +203,21 @@ class _KoleksiScreenState extends State<KoleksiScreen> {
             ),
             onPressed: () async {
               await _service.hapusKoleksi(item.id, item.userId);
-              if (ctx.mounted) Navigator.pop(ctx);
-              _loadKoleksi();
-              if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('"\${item.namaSepatu}" dihapus'),
-                    backgroundColor: _kError,
-                    behavior: SnackBarBehavior.floating,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
+              // Guard mounted setelah async gap sebelum menggunakan ctx/context
+              if (!ctx.mounted) return;
+              Navigator.pop(ctx);
+              await _loadKoleksi();
+              if (!ctx.mounted) return;
+              ScaffoldMessenger.of(ctx).showSnackBar(
+                SnackBar(
+                  content: Text('"\${item.namaSepatu}" dihapus'),
+                  backgroundColor: _kError,
+                  behavior: SnackBarBehavior.floating,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
                   ),
-                );
-              }
+                ),
+              );
             },
             child: const Text('Hapus'),
           ),

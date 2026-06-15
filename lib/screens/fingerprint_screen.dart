@@ -387,11 +387,12 @@ class _FingerprintScreenState extends State<FingerprintScreen>
                             ).toMap(),
                           );
 
-                          if (mounted) {
-                            await _loadFingerprints();
-                            Navigator.pop(context);
-                            _showSuccessSnackbar(label);
-                          }
+                          // Guard mounted setelah async gap sebelum menggunakan context
+                          if (!mounted) return;
+                          await _loadFingerprints();
+                          if (!mounted) return;
+                          Navigator.pop(context);
+                          _showSuccessSnackbar(label);
                         }
                       : null,
                   child: const Text('Simpan'),
