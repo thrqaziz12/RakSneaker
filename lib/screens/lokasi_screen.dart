@@ -1,13 +1,13 @@
 // =============================================================================
 // lokasi_screen.dart
-// Menampilkan peta toko sepatu menggunakan OpenStreetMap (flutter_map)
-// dan sensor geolocation untuk posisi pengguna saat ini.
+// Menampilkan Google Maps dan lokasi pengguna saat ini.
+// Menggunakan Google Maps SDK for Android + Geolocation API.
+// API Key: AIzaSyCVBa61HvhOJ0IBUrUXbHuVW3hqaqH9xMc
 // =============================================================================
 
 import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
-import 'package:flutter_map/flutter_map.dart';
-import 'package:latlong2/latlong.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 
 const kPrimaryColor = Color(0xFFFF6B35);
@@ -35,54 +35,6 @@ LocationSettings _buildLocationSettings() {
   }
 }
 
-// ── Data toko sepatu (sesuaikan koordinat sesuai lokasi nyata) ──────────────
-class TokoSepatu {
-  final String nama;
-  final String alamat;
-  final String jamBuka;
-  final LatLng koordinat;
-  final String telepon;
-
-  const TokoSepatu({
-    required this.nama,
-    required this.alamat,
-    required this.jamBuka,
-    required this.koordinat,
-    required this.telepon,
-  });
-}
-
-final List<TokoSepatu> daftarToko = [
-  TokoSepatu(
-    nama: 'RakSneaker Malioboro',
-    alamat: 'Jl. Malioboro No. 52, Yogyakarta',
-    jamBuka: 'Senin–Sabtu, 09.00–21.00',
-    koordinat: const LatLng(-7.7956, 110.3695),
-    telepon: '0274-555-001',
-  ),
-  TokoSepatu(
-    nama: 'RakSneaker Sleman City Hall',
-    alamat: 'Sleman City Hall Lt. 2, Sleman',
-    jamBuka: 'Setiap Hari, 10.00–22.00',
-    koordinat: const LatLng(-7.7517, 110.3925),
-    telepon: '0274-555-002',
-  ),
-  TokoSepatu(
-    nama: 'RakSneaker Amplaz',
-    alamat: 'Ambarrukmo Plaza Lt. 1, Yogyakarta',
-    jamBuka: 'Setiap Hari, 10.00–22.00',
-    koordinat: const LatLng(-7.7836, 110.4065),
-    telepon: '0274-555-003',
-  ),
-  TokoSepatu(
-    nama: 'RakSneaker Godean',
-    alamat: 'Jl. Godean Km. 5, Sleman',
-    jamBuka: 'Senin–Sabtu, 09.00–20.00',
-    koordinat: const LatLng(-7.7886, 110.3278),
-    telepon: '0274-555-004',
-  ),
-];
-
 class LokasiScreen extends StatefulWidget {
   const LokasiScreen({super.key});
 
@@ -91,11 +43,10 @@ class LokasiScreen extends StatefulWidget {
 }
 
 class _LokasiScreenState extends State<LokasiScreen> {
-  final MapController _mapController = MapController();
+  GoogleMapController? _mapController;
   LatLng? _posisiSaya;
-  bool _loadingLokasi = false;
-  TokoSepatu? _tokoDipilih;
-  int? _tokoIndex;
+  bool _loadingLokasi = true;
+  final Set<Marker> _markers = {};
 
   // Pusat peta default: Yogyakarta
   static const LatLng _pusatDefault = LatLng(-7.7956, 110.3695);
@@ -104,6 +55,12 @@ class _LokasiScreenState extends State<LokasiScreen> {
   void initState() {
     super.initState();
     _ambilLokasi();
+  }
+
+  @override
+  void dispose() {
+    _mapController?.dispose();
+    super.dispose();
   }
 
   Future<void> _ambilLokasi() async {
@@ -137,17 +94,38 @@ class _LokasiScreenState extends State<LokasiScreen> {
         return;
       }
 
-      // Dapatkan posisi — gunakan LocationSettings sesuai platform
+      // Dapatkan posisi saat ini
       final posisi = await Geolocator.getCurrentPosition(
         locationSettings: _buildLocationSettings(),
       );
       final latLng = LatLng(posisi.latitude, posisi.longitude);
+
+      // Tambahkan marker lokasi pengguna
+      final markerSaya = Marker(
+        markerId: const MarkerId('lokasi_saya'),
+        position: latLng,
+        infoWindow: const InfoWindow(
+          title: 'Lokasi Saya',
+          snippet: 'Posisi Anda saat ini',
+        ),
+        icon: BitmapDescriptor.defaultMarkerWithHue(
+          BitmapDescriptor.hueAzure,
+        ),
+      );
+
       setState(() {
         _posisiSaya = latLng;
         _loadingLokasi = false;
+        _markers.removeWhere((m) => m.markerId.value == 'lokasi_saya');
+        _markers.add(markerSaya);
       });
-      // Arahkan peta ke posisi saya
-      _mapController.move(latLng, 14.0);
+
+      // Pindahkan kamera ke posisi pengguna
+      _mapController?.animateCamera(
+        CameraUpdate.newCameraPosition(
+          CameraPosition(target: latLng, zoom: 15.0),
+        ),
+      );
     } catch (e) {
       _tampilkanPesan('Gagal mendapatkan lokasi: $e');
       setState(() => _loadingLokasi = false);
@@ -161,19 +139,24 @@ class _LokasiScreenState extends State<LokasiScreen> {
         content: Text(pesan),
         backgroundColor: kTextPrimary,
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+        ),
         margin: const EdgeInsets.all(16),
       ),
     );
   }
 
-  void _pilihToko(int index) {
-    final toko = daftarToko[index];
-    setState(() {
-      _tokoDipilih = toko;
-      _tokoIndex = index;
-    });
-    _mapController.move(toko.koordinat, 16.0);
+  void _kembaliKeLokasi() {
+    if (_posisiSaya != null) {
+      _mapController?.animateCamera(
+        CameraUpdate.newCameraPosition(
+          CameraPosition(target: _posisiSaya!, zoom: 15.0),
+        ),
+      );
+    } else {
+      _ambilLokasi();
+    }
   }
 
   @override
@@ -185,7 +168,7 @@ class _LokasiScreenState extends State<LokasiScreen> {
         foregroundColor: kTextPrimary,
         elevation: 0,
         title: const Text(
-          'Lokasi Toko',
+          'Lokasi Saya',
           style: TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.w700,
@@ -193,7 +176,6 @@ class _LokasiScreenState extends State<LokasiScreen> {
           ),
         ),
         actions: [
-          // Tombol lokasi saya
           _loadingLokasi
               ? const Padding(
                   padding: EdgeInsets.all(14),
@@ -210,7 +192,7 @@ class _LokasiScreenState extends State<LokasiScreen> {
                   onPressed: _ambilLokasi,
                   icon: const Icon(Icons.my_location_rounded),
                   color: kPrimaryColor,
-                  tooltip: 'Lokasi Saya',
+                  tooltip: 'Perbarui Lokasi',
                 ),
         ],
         bottom: PreferredSize(
@@ -218,434 +200,162 @@ class _LokasiScreenState extends State<LokasiScreen> {
           child: Container(height: 1, color: kBorderColor),
         ),
       ),
-      body: Column(
+      body: Stack(
         children: [
-          // ── Peta OpenStreetMap ───────────────────────────────────────────
-          Expanded(
-            flex: 3,
-            child: Stack(
-              children: [
-                FlutterMap(
-                  mapController: _mapController,
-                  options: MapOptions(
-                    initialCenter: _pusatDefault,
-                    initialZoom: 13.0,
-                    maxZoom: 19.0,
-                    minZoom: 5.0,
-                    interactionOptions: const InteractionOptions(
-                      flags: InteractiveFlag.all,
-                    ),
+          // ── Google Maps ────────────────────────────────────────────────
+          GoogleMap(
+            onMapCreated: (controller) {
+              _mapController = controller;
+              // Setelah map siap, jika lokasi sudah ada, pindahkan kamera
+              if (_posisiSaya != null) {
+                controller.animateCamera(
+                  CameraUpdate.newCameraPosition(
+                    CameraPosition(target: _posisiSaya!, zoom: 15.0),
                   ),
-                  children: [
-                    // Layer tile OpenStreetMap
-                    TileLayer(
-                      urlTemplate:
-                          'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                      userAgentPackageName: 'com.raksneaker.app',
-                      maxZoom: 19,
-                    ),
-                    // Marker toko sepatu
-                    MarkerLayer(
-                      markers: [
-                        // Marker posisi saya (biru)
-                        if (_posisiSaya != null)
-                          Marker(
-                            point: _posisiSaya!,
-                            width: 60,
-                            height: 60,
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Container(
-                                  width: 20,
-                                  height: 20,
-                                  decoration: BoxDecoration(
-                                    color: Colors.blue,
-                                    shape: BoxShape.circle,
-                                    border: Border.all(
-                                      color: Colors.white,
-                                      width: 3,
-                                    ),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.blue.withValues(
-                                          alpha: 0.4,
-                                        ),
-                                        blurRadius: 8,
-                                        spreadRadius: 4,
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                const SizedBox(height: 2),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 4,
-                                    vertical: 2,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: Colors.blue,
-                                    borderRadius: BorderRadius.circular(4),
-                                  ),
-                                  child: const Text(
-                                    'Saya',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 9,
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        // Marker setiap toko
-                        ...List.generate(daftarToko.length, (i) {
-                          final toko = daftarToko[i];
-                          final dipilih = _tokoIndex == i;
-                          return Marker(
-                            point: toko.koordinat,
-                            width: dipilih ? 80 : 60,
-                            height: dipilih ? 80 : 60,
-                            child: GestureDetector(
-                              onTap: () => _pilihToko(i),
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.all(8),
-                                    decoration: BoxDecoration(
-                                      color: dipilih
-                                          ? kPrimaryColor
-                                          : Colors.white,
-                                      shape: BoxShape.circle,
-                                      border: Border.all(
-                                        color: kPrimaryColor,
-                                        width: dipilih ? 0 : 2.5,
-                                      ),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: kPrimaryColor.withValues(
-                                            alpha: dipilih ? 0.5 : 0.2,
-                                          ),
-                                          blurRadius: dipilih ? 12 : 6,
-                                          spreadRadius: dipilih ? 2 : 0,
-                                        ),
-                                      ],
-                                    ),
-                                    child: Icon(
-                                      Icons.storefront_rounded,
-                                      color: dipilih
-                                          ? Colors.white
-                                          : kPrimaryColor,
-                                      size: dipilih ? 22 : 18,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          );
-                        }),
-                      ],
+                );
+              }
+            },
+            initialCameraPosition: const CameraPosition(
+              target: _pusatDefault,
+              zoom: 13.0,
+            ),
+            markers: _markers,
+            myLocationEnabled: true,
+            myLocationButtonEnabled: false,
+            zoomControlsEnabled: false,
+            mapToolbarEnabled: false,
+            compassEnabled: true,
+          ),
+
+          // ── Info card lokasi pengguna ──────────────────────────────────
+          if (_posisiSaya != null)
+            Positioned(
+              bottom: 100,
+              left: 16,
+              right: 16,
+              child: Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: kSurfaceLight,
+                  borderRadius: BorderRadius.circular(14),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.10),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
                     ),
                   ],
                 ),
-                // Kredit OpenStreetMap (wajib)
-                Positioned(
-                  bottom: 4,
-                  right: 4,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 6,
-                      vertical: 2,
+                child: Row(
+                  children: [
+                    Container(
+                      width: 42,
+                      height: 42,
+                      decoration: BoxDecoration(
+                        color: kPrimaryColor.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(
+                        Icons.my_location_rounded,
+                        color: kPrimaryColor,
+                        size: 22,
+                      ),
                     ),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.85),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: const Text(
-                      '© OpenStreetMap contributors',
-                      style: TextStyle(fontSize: 9, color: kTextMuted),
-                    ),
-                  ),
-                ),
-                // Tombol reset ke default
-                Positioned(
-                  top: 12,
-                  right: 12,
-                  child: _MapFabButton(
-                    icon: Icons.zoom_out_map_rounded,
-                    tooltip: 'Tampilan Semua Toko',
-                    onTap: () {
-                      setState(() {
-                        _tokoDipilih = null;
-                        _tokoIndex = null;
-                      });
-                      _mapController.move(_pusatDefault, 13.0);
-                    },
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          // ── Divider ─────────────────────────────────────────────────────
-          Container(height: 1, color: kBorderColor),
-
-          // ── Daftar toko horizontal di bawah ─────────────────────────────
-          Container(
-            color: kSurfaceLight,
-            padding: const EdgeInsets.symmetric(vertical: 12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Padding(
-                  padding: EdgeInsets.only(left: 16, bottom: 8),
-                  child: Text(
-                    'Toko Terdekat',
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                      color: kTextPrimary,
-                    ),
-                  ),
-                ),
-                SizedBox(
-                  height: 110,
-                  child: ListView.separated(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    scrollDirection: Axis.horizontal,
-                    itemCount: daftarToko.length,
-                    separatorBuilder: (_, _) => const SizedBox(width: 10),
-                    itemBuilder: (context, i) {
-                      final toko = daftarToko[i];
-                      final dipilih = _tokoIndex == i;
-                      return GestureDetector(
-                        onTap: () => _pilihToko(i),
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 200),
-                          width: 190,
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: dipilih
-                                ? kPrimaryColor.withValues(alpha: 0.08)
-                                : kBgLight,
-                            border: Border.all(
-                              color: dipilih ? kPrimaryColor : kBorderColor,
-                              width: dipilih ? 1.5 : 1,
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Lokasi Anda Saat Ini',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                              color: kTextPrimary,
                             ),
-                            borderRadius: BorderRadius.circular(12),
                           ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  Icon(
-                                    Icons.storefront_rounded,
-                                    color: dipilih ? kPrimaryColor : kTextMuted,
-                                    size: 16,
-                                  ),
-                                  const SizedBox(width: 6),
-                                  Expanded(
-                                    child: Text(
-                                      toko.nama,
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w700,
-                                        color: dipilih
-                                            ? kPrimaryColor
-                                            : kTextPrimary,
-                                      ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 6),
-                              Text(
-                                toko.alamat,
-                                style: const TextStyle(
-                                  fontSize: 10,
-                                  color: kTextMuted,
-                                ),
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              const Spacer(),
-                              Row(
-                                children: [
-                                  const Icon(
-                                    Icons.access_time_rounded,
-                                    size: 8,
-                                    color: kTextMuted,
-                                  ),
-                                  const SizedBox(width: 3),
-                                  Expanded(
-                                    child: Text(
-                                      toko.jamBuka,
-                                      style: const TextStyle(
-                                        fontSize: 8,
-                                        color: kTextMuted,
-                                      ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
+                          const SizedBox(height: 2),
+                          Text(
+                            'Lat: ${_posisiSaya!.latitude.toStringAsFixed(6)}\nLng: ${_posisiSaya!.longitude.toStringAsFixed(6)}',
+                            style: const TextStyle(
+                              fontSize: 11,
+                              color: kTextMuted,
+                              height: 1.5,
+                            ),
                           ),
-                        ),
-                      );
-                    },
-                  ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
-              ],
+              ),
+            ),
+
+          // ── Tombol kembali ke lokasi saya ──────────────────────────────
+          Positioned(
+            bottom: 24,
+            right: 16,
+            child: FloatingActionButton(
+              onPressed: _kembaliKeLokasi,
+              backgroundColor: kSurfaceLight,
+              foregroundColor: kPrimaryColor,
+              elevation: 4,
+              mini: false,
+              tooltip: 'Ke Lokasi Saya',
+              child: const Icon(Icons.my_location_rounded),
             ),
           ),
 
-          // ── Detail toko dipilih ──────────────────────────────────────────
-          if (_tokoDipilih != null)
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-              decoration: BoxDecoration(
-                color: kSurfaceLight,
-                border: Border(top: BorderSide(color: kBorderColor)),
+          // ── Loading overlay ────────────────────────────────────────────
+          if (_loadingLokasi)
+            Positioned(
+              top: 16,
+              left: 0,
+              right: 0,
+              child: Center(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 10,
+                  ),
+                  decoration: BoxDecoration(
+                    color: kSurfaceLight,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.10),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: kPrimaryColor,
+                        ),
+                      ),
+                      SizedBox(width: 10),
+                      Text(
+                        'Mendapatkan lokasi...',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: kTextPrimary,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
-              child: _DetailTokoCard(toko: _tokoDipilih!),
             ),
         ],
       ),
-    );
-  }
-}
-
-// ── Widget tombol floating di peta ──────────────────────────────────────────
-class _MapFabButton extends StatelessWidget {
-  final IconData icon;
-  final String tooltip;
-  final VoidCallback onTap;
-
-  const _MapFabButton({
-    required this.icon,
-    required this.tooltip,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Tooltip(
-      message: tooltip,
-      child: GestureDetector(
-        onTap: onTap,
-        child: Container(
-          width: 40,
-          height: 40,
-          decoration: BoxDecoration(
-            color: kSurfaceLight,
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: kBorderColor),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.08),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: Icon(icon, size: 20, color: kTextPrimary),
-        ),
-      ),
-    );
-  }
-}
-
-// ── Card detail toko yang dipilih ────────────────────────────────────────────
-class _DetailTokoCard extends StatelessWidget {
-  final TokoSepatu toko;
-  const _DetailTokoCard({required this.toko});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          width: 44,
-          height: 44,
-          decoration: BoxDecoration(
-            color: kPrimaryColor.withValues(alpha: 0.12),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: const Icon(
-            Icons.storefront_rounded,
-            color: kPrimaryColor,
-            size: 24,
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                toko.nama,
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                  color: kTextPrimary,
-                ),
-              ),
-              const SizedBox(height: 2),
-              Row(
-                children: [
-                  const Icon(
-                    Icons.location_on_rounded,
-                    size: 12,
-                    color: kTextMuted,
-                  ),
-                  const SizedBox(width: 3),
-                  Expanded(
-                    child: Text(
-                      toko.alamat,
-                      style: const TextStyle(fontSize: 12, color: kTextMuted),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 2),
-              Row(
-                children: [
-                  const Icon(
-                    Icons.access_time_rounded,
-                    size: 12,
-                    color: kTextMuted,
-                  ),
-                  const SizedBox(width: 3),
-                  Text(
-                    toko.jamBuka,
-                    style: const TextStyle(fontSize: 12, color: kTextMuted),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 2),
-              Row(
-                children: [
-                  const Icon(Icons.phone_rounded, size: 12, color: kTextMuted),
-                  const SizedBox(width: 3),
-                  Text(
-                    toko.telepon,
-                    style: const TextStyle(fontSize: 12, color: kTextMuted),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ],
     );
   }
 }
