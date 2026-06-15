@@ -8,10 +8,16 @@
 //   - Tombol Logout
 //
 // Tema: Light Mode Sneaker — Oranye #FF6B35
+//
+// Fix logout:
+//   Menggunakan navigatorKey global dari main.dart agar navigasi logout
+//   tidak bergantung pada BuildContext yang bisa sudah tidak valid
+//   ketika ProfileScreen berada di dalam IndexedStack.
 // =============================================================================
 
 import 'package:flutter/material.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
+import '../main.dart' show navigatorKey;
 import 'fingerprint_screen.dart';
 import 'login_screen.dart';
 
@@ -180,10 +186,6 @@ class ProfileScreen extends StatelessWidget {
   }
 
   void _showLogoutDialog(BuildContext context) {
-    // Simpan navigator reference SEBELUM dialog dibuka,
-    // agar tetap valid meski widget sudah di-dispose oleh IndexedStack.
-    final navigator = Navigator.of(context, rootNavigator: true);
-
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -212,11 +214,11 @@ class ProfileScreen extends StatelessWidget {
               ),
             ),
             onPressed: () {
-              // Tutup dialog dulu
+              // Tutup dialog
               Navigator.pop(ctx);
-              // Gunakan rootNavigator agar keluar dari seluruh stack
-              // termasuk IndexedStack di MainScreen
-              navigator.pushAndRemoveUntil(
+              // Gunakan global navigatorKey — dijamin tidak bergantung
+              // pada BuildContext yang mungkin sudah tidak valid.
+              navigatorKey.currentState!.pushAndRemoveUntil(
                 MaterialPageRoute(builder: (_) => const LoginScreen()),
                 (_) => false,
               );

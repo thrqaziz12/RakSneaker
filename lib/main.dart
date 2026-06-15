@@ -3,6 +3,12 @@ import 'core/database_helper.dart';
 import 'screens/login_screen.dart';
 import 'services/notification_service.dart';
 
+// =============================================================================
+// Global NavigatorKey — dipakai untuk navigasi dari luar widget tree
+// (contoh: logout dari ProfileScreen yang ada di dalam IndexedStack).
+// =============================================================================
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -23,6 +29,7 @@ class RakSneakerApp extends StatelessWidget {
     return MaterialApp(
       title: 'RakSneaker',
       debugShowCheckedModeBanner: false,
+      navigatorKey: navigatorKey, // <-- daftarkan global key
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
           seedColor: const Color(0xFFFF6B35),
