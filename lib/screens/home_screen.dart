@@ -9,7 +9,6 @@
 //   - Klik card → navigasi ke ProductDetailScreen
 //   - Loading skeleton saat data sedang diambil
 //   - Error state dengan tombol retry
-//   - Tombol logout untuk kembali ke halaman LoginScreen
 //   - FAB pojok kanan bawah → akses Sneaker Tilt Maze mini game
 //
 // Tema Warna (Light Mode — Sneaker Collection Theme):
@@ -221,18 +220,6 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
-      actions: [
-        IconButton(
-          icon: const Icon(Icons.logout_rounded, color: kTextMuted),
-          tooltip: 'Logout',
-          onPressed: () {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (_) => const LoginScreen()),
-            );
-          },
-        ),
-      ],
     );
   }
 
