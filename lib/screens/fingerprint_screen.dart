@@ -5,12 +5,14 @@
 // Flow:
 //   1. User sudah login (username tersedia)
 //   2. Buka halaman ini dari ProfileScreen
-//   3. Tekan tombol "Tambah Sidik Jari"
-//   4. App memanggil local_auth (LocalAuthentication) untuk verifikasi
+//   3. Toggle "Aktifkan Sidik Jari" untuk mengaktifkan fitur
+//   4. Saat diaktifkan → tampil tombol tambah sidik jari
+//   5. App memanggil local_auth (LocalAuthentication) untuk verifikasi
 //      sidik jari NYATA dari sensor hardware perangkat
-//   5. Jika berhasil → simpan record ke tabel SQLite 'fingerprints'
-//   6. Daftar sidik jari terdaftar tampil di list
-//   7. User dapat menghapus sidik jari
+//   6. Jika berhasil → simpan record ke tabel SQLite 'fingerprints'
+//   7. Daftar sidik jari terdaftar tampil di list
+//   8. User dapat menghapus sidik jari
+//   9. Saat toggle dinonaktifkan → fitur sidik jari tidak aktif
 //
 // Implementasi:
 //   Menggunakan package local_auth ^2.3.0 untuk autentikasi biometrik nyata.
@@ -64,6 +66,9 @@ class _FingerprintScreenState extends State<FingerprintScreen>
   bool _isBiometricSupported = false;
   bool _isBiometricEnrolled = false;
 
+  // Status toggle aktif/nonaktif sidik jari
+  bool _isFingerprintEnabled = false;
+
   // Animasi tombol pulse saat scanning
   late AnimationController _pulseController;
   late Animation<double> _pulseAnimation;
@@ -108,6 +113,10 @@ class _FingerprintScreenState extends State<FingerprintScreen>
       setState(() {
         _fingerprints = rows.map(FingerprintModel.fromMap).toList();
         _dbReady = true;
+        // Aktifkan toggle secara otomatis jika sudah ada sidik jari terdaftar
+        if (_fingerprints.isNotEmpty) {
+          _isFingerprintEnabled = true;
+        }
       });
     }
   }
@@ -127,6 +136,37 @@ class _FingerprintScreenState extends State<FingerprintScreen>
   void dispose() {
     _pulseController.dispose();
     super.dispose();
+  }
+
+  // -------------------------------------------------------------------
+  // Handler toggle aktifkan/nonaktifkan sidik jari
+  // -------------------------------------------------------------------
+  void _onToggleFingerprint(bool value) {
+    if (value) {
+      // Aktifkan: cek dukungan biometrik terlebih dahulu
+      if (!_isBiometricSupported) {
+        _showInfoSnackbar(
+          'Perangkat ini tidak mendukung autentikasi biometrik.',
+          isError: true,
+        );
+        return;
+      }
+      if (!_isBiometricEnrolled) {
+        _showInfoSnackbar(
+          'Tidak ada sidik jari terdaftar di perangkat. Silakan daftarkan dulu di Pengaturan → Keamanan.',
+          isError: true,
+        );
+        return;
+      }
+    }
+    setState(() {
+      _isFingerprintEnabled = value;
+    });
+    _showInfoSnackbar(
+      value
+          ? 'Sidik jari diaktifkan. Ketuk tombol + untuk menambah sidik jari.'
+          : 'Sidik jari dinonaktifkan.',
+    );
   }
 
   // -------------------------------------------------------------------
@@ -521,14 +561,13 @@ class _FingerprintScreenState extends State<FingerprintScreen>
           ),
         ),
         actions: [
-          TextButton.icon(
-            onPressed: _showAddDialog,
-            icon: const Icon(Icons.add_rounded, size: 18, color: _kPrimary),
-            label: const Text(
-              'Tambah',
-              style: TextStyle(color: _kPrimary, fontWeight: FontWeight.w600),
+          // Tombol tambah hanya muncul jika sidik jari diaktifkan
+          if (_isFingerprintEnabled)
+            IconButton(
+              onPressed: _showAddDialog,
+              icon: const Icon(Icons.add_rounded, size: 22, color: _kPrimary),
+              tooltip: 'Tambah Sidik Jari',
             ),
-          ),
           const SizedBox(width: 4),
         ],
       ),
@@ -539,8 +578,14 @@ class _FingerprintScreenState extends State<FingerprintScreen>
                 // Banner status biometrik
                 if (!_isBiometricSupported || !_isBiometricEnrolled)
                   _buildBiometricWarning(),
+
+                // Card toggle aktifkan/nonaktifkan sidik jari
+                _buildToggleCard(),
+
                 Expanded(
-                  child: _fingerprints.isEmpty
+                  child: !_isFingerprintEnabled
+                      ? _buildDisabledState()
+                      : _fingerprints.isEmpty
                       ? _buildEmptyState()
                       : _buildList(_fingerprints),
                 ),
@@ -578,7 +623,134 @@ class _FingerprintScreenState extends State<FingerprintScreen>
   }
 
   // -------------------------------------------------------------------
-  // Empty state
+  // Card toggle aktifkan / nonaktifkan sidik jari
+  // -------------------------------------------------------------------
+  Widget _buildToggleCard() {
+    return Container(
+      margin: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        color: _kSurface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: _isFingerprintEnabled
+              ? _kPrimary.withValues(alpha: 0.40)
+              : _kBorder,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 42,
+            height: 42,
+            decoration: BoxDecoration(
+              color: _isFingerprintEnabled ? _kSurfaceAccent : const Color(0xFFF5F5F5),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: _isFingerprintEnabled
+                    ? _kPrimary.withValues(alpha: 0.25)
+                    : _kBorder,
+              ),
+            ),
+            child: Icon(
+              Icons.fingerprint_rounded,
+              color: _isFingerprintEnabled ? _kPrimary : _kTextFaint,
+              size: 24,
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Sidik Jari',
+                  style: TextStyle(
+                    color: _kTextPrimary,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  _isFingerprintEnabled
+                      ? 'Diaktifkan — Autentikasi sidik jari aktif'
+                      : 'Dinonaktifkan — Ketuk untuk mengaktifkan',
+                  style: TextStyle(
+                    color: _isFingerprintEnabled ? _kPrimaryDark : _kTextMuted,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Switch(
+            value: _isFingerprintEnabled,
+            onChanged: _onToggleFingerprint,
+            activeColor: _kPrimary,
+            activeTrackColor: _kPrimary.withValues(alpha: 0.25),
+            inactiveThumbColor: _kTextFaint,
+            inactiveTrackColor: _kBorder,
+          ),
+        ],
+      ),
+    );
+  }
+
+  // -------------------------------------------------------------------
+  // State ketika sidik jari dinonaktifkan
+  // -------------------------------------------------------------------
+  Widget _buildDisabledState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 100,
+              height: 100,
+              decoration: BoxDecoration(
+                color: const Color(0xFFF5F5F5),
+                shape: BoxShape.circle,
+                border: Border.all(color: _kBorder, width: 2),
+              ),
+              child: const Icon(
+                Icons.fingerprint_rounded,
+                size: 52,
+                color: _kTextFaint,
+              ),
+            ),
+            const SizedBox(height: 24),
+            const Text(
+              'Sidik jari dinonaktifkan',
+              style: TextStyle(
+                color: _kTextPrimary,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Aktifkan toggle di atas untuk menggunakan fitur autentikasi sidik jari.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: _kTextMuted, fontSize: 14),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // -------------------------------------------------------------------
+  // Empty state (sidik jari aktif tapi belum ada yang didaftarkan)
   // -------------------------------------------------------------------
   Widget _buildEmptyState() {
     return Center(
