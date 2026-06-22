@@ -349,9 +349,11 @@ class _ProductCard extends StatelessWidget {
           ],
         ),
         clipBehavior: Clip.hardEdge,
+        // FIX: Ganti Column utama dengan Column yang menggunakan crossAxisAlignment.stretch
+        // agar bagian thumbnail (AspectRatio) dan info mengisi tinggi yang tersedia
+        // tanpa meluap. Bagian info dibungkus Expanded supaya sisa ruang dibagi rata.
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
           children: [
             // ---- Thumbnail ----
             AspectRatio(
@@ -362,7 +364,7 @@ class _ProductCard extends StatelessWidget {
                   Image.network(
                     product.thumbnail,
                     fit: BoxFit.cover,
-                    errorBuilder: (_, _, _) => Container(
+                    errorBuilder: (_, __, ___) => Container(
                       color: kSurfaceAccent,
                       child: const Icon(
                         Icons.image_not_supported_outlined,
@@ -388,48 +390,51 @@ class _ProductCard extends StatelessWidget {
             ),
 
             // ---- Info: title, category ----
-            Padding(
-              padding: const EdgeInsets.fromLTRB(10, 5, 10, 10),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // Title
-                  Text(
-                    product.title,
-                    style: const TextStyle(
-                      color: kTextPrimary,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      height: 1,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 4),
-                  // Category Badge
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 6,
-                      vertical: 2,
-                    ),
-                    decoration: BoxDecoration(
-                      color: kSurfaceAccent,
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Text(
-                      _formatCategory(product.category),
+            // FIX: Bungkus bagian info dengan Expanded agar kolom tidak meluap
+            // melampaui batas tinggi yang ditetapkan oleh childAspectRatio grid.
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(10, 6, 10, 8),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Title
+                    Text(
+                      product.title,
                       style: const TextStyle(
-                        color: kPrimaryColor,
-                        fontSize: 10,
-                        fontWeight: FontWeight.w500,
+                        color: kTextPrimary,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        height: 1.3,
                       ),
-                      maxLines: 1,
+                      maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
-                  ),
-                  const SizedBox(height: 6),
-                ],
+                    const SizedBox(height: 4),
+                    // Category Badge
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: kSurfaceAccent,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        _formatCategory(product.category),
+                        style: const TextStyle(
+                          color: kPrimaryColor,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w500,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ],
@@ -475,7 +480,7 @@ class _SkeletonCardState extends State<_SkeletonCard>
   Widget build(BuildContext context) {
     return AnimatedBuilder(
       animation: _anim,
-      builder: (_, _) => Opacity(
+      builder: (_, __) => Opacity(
         opacity: _anim.value,
         child: Container(
           decoration: BoxDecoration(
