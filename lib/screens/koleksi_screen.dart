@@ -12,6 +12,7 @@
 //   - Hapus koleksi via dialog konfirmasi
 //   - Setiap koleksi menyimpan: gambar dari device (multi-foto), nama, merek,
 //     harga, keterangan
+//   - Konversi harga ke 3 mata uang: USD, EUR, JPY (kurs statis, bisa diperbarui)
 //
 // Storage: SQLite via KoleksiService
 // Tema: konsisten dengan app (Oranye #FF6B35)
@@ -34,6 +35,12 @@ const _kTextMuted = Color(0xFF6B6B6B);
 const _kBorder = Color(0xFFE8E0DB);
 const _kError = Color(0xFFD32F2F);
 
+// ── Kurs konversi dari IDR (statis — perbarui sesuai kurs terkini) ────────────
+// 1 USD = 16.300 IDR  |  1 EUR = 17.600 IDR  |  1 JPY = 106 IDR
+const double _kRateUSD = 16300.0;
+const double _kRateEUR = 17600.0;
+const double _kRateJPY = 106.0;
+
 // FIX: tambah guard untuk nilai <= 0 agar tidak muncul format aneh
 String _formatRupiah(double value) {
   if (value <= 0) return 'Rp 0';
@@ -44,6 +51,13 @@ String _formatRupiah(double value) {
     result.write(parts[i]);
   }
   return 'Rp ${result.toString()}';
+}
+
+/// Format nilai mata uang asing dengan simbol dan pemisah ribuan
+String _formatCurrency(double idr, double rate, String symbol,
+    {int decimals = 2}) {
+  final converted = idr / rate;
+  return '$symbol ${converted.toStringAsFixed(decimals)}';
 }
 
 class KoleksiScreen extends StatefulWidget {
@@ -420,7 +434,178 @@ class _KoleksiCard extends StatelessWidget {
   }
 }
 
-// Detail koleksi dengan tombol Edit & Hapus di bagian bawah
+// ── Widget konversi harga 3 mata uang ─────────────────────────────────────────
+class _CurrencyConversionCard extends StatelessWidget {
+  final double hargaIDR;
+
+  const _CurrencyConversionCard({required this.hargaIDR});
+
+  @override
+  Widget build(BuildContext context) {
+    // Daftar mata uang: [label, simbol, rate, desimal, warna aksen]
+    final currencies = [
+      {
+        'label': 'US Dollar',
+        'code': 'USD',
+        'symbol': '\$',
+        'rate': _kRateUSD,
+        'decimals': 2,
+        'flag': '🇺🇸',
+        'color': const Color(0xFF1565C0),
+      },
+      {
+        'label': 'Euro',
+        'code': 'EUR',
+        'symbol': '€',
+        'rate': _kRateEUR,
+        'decimals': 2,
+        'flag': '🇪🇺',
+        'color': const Color(0xFF0277BD),
+      },
+      {
+        'label': 'Japanese Yen',
+        'code': 'JPY',
+        'symbol': '¥',
+        'rate': _kRateJPY,
+        'decimals': 0,
+        'flag': '🇯🇵',
+        'color': const Color(0xFFB71C1C),
+      },
+    ];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Header seksi
+        Row(
+          children: [
+            const Icon(Icons.currency_exchange_rounded,
+                size: 16, color: _kPrimary),
+            const SizedBox(width: 6),
+            const Text(
+              'Konversi Harga',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: _kTextPri,
+              ),
+            ),
+            const Spacer(),
+            Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(
+                color: _kPrimary.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: const Text(
+                'Kurs estimasi',
+                style: TextStyle(
+                  fontSize: 10,
+                  color: _kPrimary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        // Tiga kartu mata uang dalam satu baris
+        Row(
+          children: [
+            for (int i = 0; i < currencies.length; i++) ...[
+              if (i > 0) const SizedBox(width: 8),
+              Expanded(
+                child: _CurrencyTile(
+                  flag: currencies[i]['flag'] as String,
+                  code: currencies[i]['code'] as String,
+                  label: currencies[i]['label'] as String,
+                  value: _formatCurrency(
+                    hargaIDR,
+                    currencies[i]['rate'] as double,
+                    currencies[i]['symbol'] as String,
+                    decimals: currencies[i]['decimals'] as int,
+                  ),
+                  accentColor: currencies[i]['color'] as Color,
+                ),
+              ),
+            ],
+          ],
+        ),
+        const SizedBox(height: 6),
+        // Catatan kurs
+        Text(
+          'Kurs: 1 USD ≈ Rp 16.300  •  1 EUR ≈ Rp 17.600  •  1 JPY ≈ Rp 106',
+          style: TextStyle(
+            fontSize: 10,
+            color: _kTextMuted.withValues(alpha: 0.7),
+            height: 1.5,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _CurrencyTile extends StatelessWidget {
+  final String flag;
+  final String code;
+  final String label;
+  final String value;
+  final Color accentColor;
+
+  const _CurrencyTile({
+    required this.flag,
+    required this.code,
+    required this.label,
+    required this.value,
+    required this.accentColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+      decoration: BoxDecoration(
+        color: accentColor.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: accentColor.withValues(alpha: 0.18)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text(flag, style: const TextStyle(fontSize: 14)),
+              const SizedBox(width: 4),
+              Text(
+                code,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: accentColor,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w800,
+              color: accentColor,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Detail koleksi dengan tombol Edit & Hapus di bagian bawah ─────────────────
 class _KoleksiDetail extends StatefulWidget {
   final KoleksiModel item;
   final VoidCallback onEdit;
@@ -559,6 +744,7 @@ class _KoleksiDetailState extends State<_KoleksiDetail> {
                     style: const TextStyle(fontSize: 14, color: _kTextMuted),
                   ),
                   const SizedBox(height: 12),
+                  // Harga Rupiah
                   Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 14,
@@ -577,6 +763,10 @@ class _KoleksiDetailState extends State<_KoleksiDetail> {
                       ),
                     ),
                   ),
+                  // ── Konversi 3 mata uang ───────────────────────────────────
+                  const SizedBox(height: 16),
+                  _CurrencyConversionCard(hargaIDR: item.harga),
+                  // ──────────────────────────────────────────────────────────
                   if (item.keterangan.isNotEmpty) ...[
                     const SizedBox(height: 16),
                     const Text(
