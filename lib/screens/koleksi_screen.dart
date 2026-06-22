@@ -54,8 +54,12 @@ String _formatRupiah(double value) {
 }
 
 /// Format nilai mata uang asing dengan simbol dan pemisah ribuan
-String _formatCurrency(double idr, double rate, String symbol,
-    {int decimals = 2}) {
+String _formatCurrency(
+  double idr,
+  double rate,
+  String symbol, {
+  int decimals = 2,
+}) {
   final converted = idr / rate;
   return '$symbol ${converted.toStringAsFixed(decimals)}';
 }
@@ -106,15 +110,6 @@ class _KoleksiScreenState extends State<KoleksiScreen> {
             color: _kTextPri,
           ),
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.add_rounded),
-            color: _kPrimary,
-            iconSize: 28,
-            tooltip: 'Tambah Koleksi',
-            onPressed: () => _openForm(context, existing: null),
-          ),
-        ],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1),
           child: Container(height: 1, color: _kBorder),
@@ -479,8 +474,11 @@ class _CurrencyConversionCard extends StatelessWidget {
         // Header seksi
         Row(
           children: [
-            const Icon(Icons.currency_exchange_rounded,
-                size: 16, color: _kPrimary),
+            const Icon(
+              Icons.currency_exchange_rounded,
+              size: 16,
+              color: _kPrimary,
+            ),
             const SizedBox(width: 6),
             const Text(
               'Konversi Harga',
@@ -492,8 +490,7 @@ class _CurrencyConversionCard extends StatelessWidget {
             ),
             const Spacer(),
             Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
               decoration: BoxDecoration(
                 color: _kPrimary.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(20),
