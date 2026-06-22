@@ -17,11 +17,22 @@
 //   Sensor fingerprint hardware perangkat dipanggil via LocalAuthentication.
 //   Fallback graceful jika perangkat tidak mendukung biometrik.
 //   Data disimpan ke SQLite melalui DatabaseHelper (tabel 'fingerprints').
+//   Status toggle disimpan via SharedPreferences agar persisten.
 //
 // Tema: Light Mode Sneaker — Oranye #FF6B35
+//
+// Changelog:
+//   fix(bug#1): Status toggle disimpan ke SharedPreferences agar tidak reset
+//               saat halaman dibuka ulang.
+//   fix(bug#2): setState dipanggil dengan nilai false saat biometrik ditolak,
+//               mencegah Switch tampak aktif padahal logika ditolak.
+//   fix(bug#3): Tombol "Daftarkan Sidik Jari" ditambahkan di empty state.
+//               Autentikasi biometrik dipanggil dan hasilnya disimpan ke DB.
+//   fix(bug#4): Tombol hapus ditambahkan di setiap _FingerprintTile.
 // =============================================================================
 
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../core/database_helper.dart';
 import '../models/fingerprint_model.dart';
 import '../models/user_model.dart';
@@ -67,9 +78,15 @@ class _FingerprintScreenState extends State<FingerprintScreen>
   // Status toggle aktif/nonaktif sidik jari
   bool _isFingerprintEnabled = false;
 
+  // Untuk mencegah double-tap saat proses scan berjalan
+  bool _isRegistering = false;
+
   // Animasi tombol pulse saat scanning
   late AnimationController _pulseController;
   late Animation<double> _pulseAnimation;
+
+  // Kunci SharedPreferences untuk menyimpan status toggle per user
+  String get _prefKey => 'fingerprint_enabled_${widget.username}';
 
   @override
   void initState() {
@@ -85,7 +102,7 @@ class _FingerprintScreenState extends State<FingerprintScreen>
     _checkBiometricStatus();
   }
 
-  // Inisialisasi: ambil userId lalu load daftar sidik jari dari SQLite
+  // Inisialisasi: ambil userId, load preferensi toggle, lalu load daftar sidik jari
   Future<void> _initData() async {
     final UserModel? user = await _authService.getUserByUsername(
       widget.username,
@@ -95,10 +112,15 @@ class _FingerprintScreenState extends State<FingerprintScreen>
       return;
     }
     _userId = user.id;
-    await _loadFingerprints();
+
+    // FIX BUG #1: Baca status toggle dari SharedPreferences
+    final prefs = await SharedPreferences.getInstance();
+    final savedEnabled = prefs.getBool(_prefKey) ?? false;
+
+    await _loadFingerprints(initialEnabled: savedEnabled);
   }
 
-  Future<void> _loadFingerprints() async {
+  Future<void> _loadFingerprints({bool? initialEnabled}) async {
     if (_userId == null) return;
     final db = await _dbHelper.database;
     final rows = await db.query(
@@ -111,9 +133,9 @@ class _FingerprintScreenState extends State<FingerprintScreen>
       setState(() {
         _fingerprints = rows.map(FingerprintModel.fromMap).toList();
         _dbReady = true;
-        // Aktifkan toggle secara otomatis jika sudah ada sidik jari terdaftar
-        if (_fingerprints.isNotEmpty) {
-          _isFingerprintEnabled = true;
+        // FIX BUG #1: Gunakan nilai yang tersimpan, bukan auto-aktif dari data
+        if (initialEnabled != null) {
+          _isFingerprintEnabled = initialEnabled;
         }
       });
     }
@@ -139,7 +161,7 @@ class _FingerprintScreenState extends State<FingerprintScreen>
   // -------------------------------------------------------------------
   // Handler toggle aktifkan/nonaktifkan sidik jari
   // -------------------------------------------------------------------
-  void _onToggleFingerprint(bool value) {
+  Future<void> _onToggleFingerprint(bool value) async {
     if (value) {
       // Aktifkan: cek dukungan biometrik terlebih dahulu
       if (!_isBiometricSupported) {
@@ -147,6 +169,8 @@ class _FingerprintScreenState extends State<FingerprintScreen>
           'Perangkat ini tidak mendukung autentikasi biometrik.',
           isError: true,
         );
+        // FIX BUG #2: Kembalikan switch ke posisi off jika ditolak
+        setState(() => _isFingerprintEnabled = false);
         return;
       }
       if (!_isBiometricEnrolled) {
@@ -154,9 +178,16 @@ class _FingerprintScreenState extends State<FingerprintScreen>
           'Tidak ada sidik jari terdaftar di perangkat. Silakan daftarkan dulu di Pengaturan \u2192 Keamanan.',
           isError: true,
         );
+        // FIX BUG #2: Kembalikan switch ke posisi off jika ditolak
+        setState(() => _isFingerprintEnabled = false);
         return;
       }
     }
+
+    // FIX BUG #1: Simpan status toggle ke SharedPreferences
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_prefKey, value);
+
     setState(() {
       _isFingerprintEnabled = value;
     });
@@ -165,6 +196,91 @@ class _FingerprintScreenState extends State<FingerprintScreen>
           ? 'Sidik jari diaktifkan.'
           : 'Sidik jari dinonaktifkan.',
     );
+  }
+
+  // -------------------------------------------------------------------
+  // FIX BUG #3: Daftarkan sidik jari baru via autentikasi hardware
+  // -------------------------------------------------------------------
+  Future<void> _registerFingerprint() async {
+    if (_isRegistering || _userId == null) return;
+
+    setState(() => _isRegistering = true);
+
+    final result = await _biometricService.authenticate(
+      reason: 'Tempelkan sidik jari Anda untuk mendaftarkannya ke RakSneaker',
+    );
+
+    if (!mounted) return;
+
+    if (result.success) {
+      final now = DateTime.now();
+      final label =
+          'Sidik Jari ${_fingerprints.length + 1}';
+      final addedAt =
+          '${now.day.toString().padLeft(2, '0')}/${now.month.toString().padLeft(2, '0')}/${now.year} '
+          '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
+
+      final fp = FingerprintModel(
+        userId: _userId!,
+        label: label,
+        addedAt: addedAt,
+      );
+
+      await _biometricService.tambahFingerprint(fp);
+      await _loadFingerprints();
+      _showSuccessSnackbar(label);
+    } else {
+      _showInfoSnackbar(result.message, isError: true);
+    }
+
+    if (mounted) setState(() => _isRegistering = false);
+  }
+
+  // -------------------------------------------------------------------
+  // FIX BUG #4: Hapus sidik jari
+  // -------------------------------------------------------------------
+  Future<void> _deleteFingerprint(FingerprintModel fp) async {
+    if (fp.id == null) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: _kSurface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text(
+          'Hapus Sidik Jari',
+          style: TextStyle(color: _kTextPrimary, fontWeight: FontWeight.bold),
+        ),
+        content: Text(
+          'Hapus "${fp.label}"? Tindakan ini tidak dapat dibatalkan.',
+          style: const TextStyle(color: _kTextMuted),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Batal', style: TextStyle(color: _kTextMuted)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: _kError,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10)),
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Hapus'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      await _biometricService.hapusFingerprint(fp.id!);
+      await _loadFingerprints();
+      if (mounted) {
+        _showInfoSnackbar('"${fp.label}" berhasil dihapus.');
+      }
+    }
   }
 
   void _showSuccessSnackbar(String label) {
@@ -260,6 +376,25 @@ class _FingerprintScreenState extends State<FingerprintScreen>
                 ),
               ],
             ),
+      // FIX BUG #3: FAB untuk mendaftarkan sidik jari (hanya tampil jika aktif)
+      floatingActionButton: _isFingerprintEnabled
+          ? FloatingActionButton.extended(
+              onPressed: _isRegistering ? null : _registerFingerprint,
+              backgroundColor: _kPrimary,
+              foregroundColor: Colors.white,
+              icon: _isRegistering
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        color: Colors.white,
+                        strokeWidth: 2,
+                      ),
+                    )
+                  : const Icon(Icons.add_rounded),
+              label: Text(_isRegistering ? 'Memindai...' : 'Daftarkan Sidik Jari'),
+            )
+          : null,
     );
   }
 
@@ -419,7 +554,7 @@ class _FingerprintScreenState extends State<FingerprintScreen>
   }
 
   // -------------------------------------------------------------------
-  // Empty state (sidik jari aktif tapi belum ada yang didaftarkan)
+  // FIX BUG #3: Empty state dengan tombol daftarkan sidik jari
   // -------------------------------------------------------------------
   Widget _buildEmptyState() {
     return Center(
@@ -459,9 +594,42 @@ class _FingerprintScreenState extends State<FingerprintScreen>
             ),
             const SizedBox(height: 8),
             const Text(
-              'Sidik jari Anda akan muncul di sini setelah terdaftar.',
+              'Ketuk tombol di bawah untuk mendaftarkan sidik jari Anda.',
               textAlign: TextAlign.center,
               style: TextStyle(color: _kTextMuted, fontSize: 14),
+            ),
+            const SizedBox(height: 28),
+            // Tombol daftarkan sidik jari langsung dari empty state
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: _isRegistering ? null : _registerFingerprint,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: _kPrimary,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                icon: _isRegistering
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2,
+                        ),
+                      )
+                    : const Icon(Icons.fingerprint_rounded),
+                label: Text(
+                  _isRegistering ? 'Memindai...' : 'Daftarkan Sidik Jari',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 15,
+                  ),
+                ),
+              ),
             ),
           ],
         ),
@@ -510,7 +678,8 @@ class _FingerprintScreenState extends State<FingerprintScreen>
 
         Expanded(
           child: ListView.separated(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+            // Padding bottom agar tidak tertutup FAB
+            padding: const EdgeInsets.fromLTRB(20, 4, 20, 100),
             itemCount: fps.length,
             separatorBuilder: (_, _) => const SizedBox(height: 10),
             itemBuilder: (_, i) {
@@ -518,6 +687,8 @@ class _FingerprintScreenState extends State<FingerprintScreen>
               return _FingerprintTile(
                 fingerprint: fp,
                 index: fps.length - i,
+                // FIX BUG #4: callback hapus diteruskan ke tile
+                onDelete: () => _deleteFingerprint(fp),
               );
             },
           ),
@@ -533,10 +704,13 @@ class _FingerprintScreenState extends State<FingerprintScreen>
 class _FingerprintTile extends StatelessWidget {
   final FingerprintModel fingerprint;
   final int index;
+  // FIX BUG #4: callback hapus
+  final VoidCallback onDelete;
 
   const _FingerprintTile({
     required this.fingerprint,
     required this.index,
+    required this.onDelete,
   });
 
   @override
@@ -613,6 +787,17 @@ class _FingerprintTile extends StatelessWidget {
                 ),
               ],
             ),
+          ),
+          // FIX BUG #4: Tombol hapus
+          IconButton(
+            onPressed: onDelete,
+            icon: const Icon(
+              Icons.delete_outline_rounded,
+              color: _kError,
+              size: 22,
+            ),
+            tooltip: 'Hapus sidik jari',
+            splashRadius: 22,
           ),
         ],
       ),
