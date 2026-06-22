@@ -46,8 +46,6 @@ const _kError = Color(0xFFD92B4B);
 const _kNamaMahasiswa = 'Muhammad Thoriq Aziz';
 const _kNIM = '123230233';
 const _kPesan =
-    'Mata kuliah Teknologi Pemrograman Mobile sangat bermanfaat dan memberikan '
-    'pengalaman nyata dalam membangun aplikasi mobile menggunakan Flutter. '
     'Semoga ke depannya materi terus diperbarui mengikuti perkembangan teknologi '
     'sehingga mahasiswa semakin siap terjun ke dunia industri.';
 const _kKesan =
