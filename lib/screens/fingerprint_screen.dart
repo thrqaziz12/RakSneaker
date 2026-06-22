@@ -10,7 +10,8 @@
 //   5. App memanggil local_auth (LocalAuthentication) untuk verifikasi
 //      sidik jari NYATA dari sensor hardware perangkat
 //   6. Jika berhasil → simpan record ke tabel SQLite 'fingerprints'
-//   7. Saat toggle dinonaktifkan → fitur sidik jari tidak aktif
+//   7. Saat toggle dinonaktifkan → SEMUA data fingerprint di SQLite
+//      dihapus sehingga login biometrik benar-benar terblokir
 //
 // Implementasi:
 //   Menggunakan package local_auth ^2.3.0 untuk autentikasi biometrik nyata.
@@ -29,6 +30,9 @@
 //   fix(bug#3): Tombol "Daftarkan Sidik Jari" ditambahkan di empty state.
 //               Autentikasi biometrik dipanggil dan hasilnya disimpan ke DB.
 //   fix(bug#4): Tombol hapus ditambahkan di setiap _FingerprintTile.
+//   fix(bug#5): Saat toggle dinonaktifkan, tampilkan dialog konfirmasi dan
+//               hapus SEMUA record fingerprint dari SQLite agar login_screen
+//               benar-benar memblokir login biometrik (bukan hanya ubah prefs).
 // =============================================================================
 
 import 'package:flutter/material.dart';
@@ -159,11 +163,24 @@ class _FingerprintScreenState extends State<FingerprintScreen>
   }
 
   // -------------------------------------------------------------------
+  // FIX BUG #5: Hapus SEMUA fingerprint dari SQLite untuk userId ini
+  // -------------------------------------------------------------------
+  Future<void> _deleteAllFingerprints() async {
+    if (_userId == null) return;
+    final db = await _dbHelper.database;
+    await db.delete(
+      'fingerprints',
+      where: 'userId = ?',
+      whereArgs: [_userId],
+    );
+  }
+
+  // -------------------------------------------------------------------
   // Handler toggle aktifkan/nonaktifkan sidik jari
   // -------------------------------------------------------------------
   Future<void> _onToggleFingerprint(bool value) async {
     if (value) {
-      // Aktifkan: cek dukungan biometrik terlebih dahulu
+      // ── Aktifkan: cek dukungan biometrik terlebih dahulu ──
       if (!_isBiometricSupported) {
         _showInfoSnackbar(
           'Perangkat ini tidak mendukung autentikasi biometrik.',
@@ -182,19 +199,150 @@ class _FingerprintScreenState extends State<FingerprintScreen>
         setState(() => _isFingerprintEnabled = false);
         return;
       }
+
+      // FIX BUG #1: Simpan status toggle ke SharedPreferences
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(_prefKey, true);
+
+      setState(() => _isFingerprintEnabled = true);
+      _showInfoSnackbar('Sidik jari diaktifkan.');
+    } else {
+      // ── Nonaktifkan: tampilkan dialog konfirmasi terlebih dahulu ──
+      // FIX BUG #5: Jika user konfirmasi, hapus semua data SQLite fingerprint
+      final confirmed = await _showDisableConfirmationDialog();
+      if (!mounted) return;
+
+      if (confirmed != true) {
+        // User membatalkan → kembalikan toggle ke posisi ON
+        setState(() => _isFingerprintEnabled = true);
+        return;
+      }
+
+      // User konfirmasi → hapus semua record fingerprint dari SQLite
+      await _deleteAllFingerprints();
+
+      // Sinkronisasi SharedPreferences
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(_prefKey, false);
+
+      // Reload daftar (sekarang kosong) dan update state toggle
+      await _loadFingerprints();
+      if (mounted) {
+        setState(() => _isFingerprintEnabled = false);
+        _showInfoSnackbar(
+          'Sidik jari dinonaktifkan. Semua data sidik jari telah dihapus.',
+        );
+      }
     }
+  }
 
-    // FIX BUG #1: Simpan status toggle ke SharedPreferences
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(_prefKey, value);
-
-    setState(() {
-      _isFingerprintEnabled = value;
-    });
-    _showInfoSnackbar(
-      value
-          ? 'Sidik jari diaktifkan.'
-          : 'Sidik jari dinonaktifkan.',
+  // -------------------------------------------------------------------
+  // FIX BUG #5: Dialog konfirmasi sebelum menonaktifkan sidik jari
+  // -------------------------------------------------------------------
+  Future<bool?> _showDisableConfirmationDialog() {
+    return showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        elevation: 0,
+        backgroundColor: Colors.transparent,
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: _kSurface,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.12),
+                blurRadius: 24,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Ikon peringatan
+              Container(
+                width: 60,
+                height: 60,
+                decoration: BoxDecoration(
+                  color: _kError.withValues(alpha: 0.10),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.warning_amber_rounded,
+                  color: _kError,
+                  size: 32,
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Nonaktifkan Sidik Jari?',
+                style: TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.bold,
+                  color: _kTextPrimary,
+                ),
+              ),
+              const SizedBox(height: 10),
+              const Text(
+                'Semua data sidik jari yang terdaftar akan dihapus permanen.\n\n'
+                'Setelah dinonaktifkan, Anda tidak bisa login menggunakan sidik jari '
+                'hingga mendaftarkan ulang.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 13,
+                  color: _kTextMuted,
+                  height: 1.5,
+                ),
+              ),
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.of(ctx).pop(false),
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: _kBorder),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                      child: const Text(
+                        'Batal',
+                        style: TextStyle(
+                          color: _kTextMuted,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () => Navigator.of(ctx).pop(true),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: _kError,
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                      child: const Text(
+                        'Nonaktifkan',
+                        style: TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -214,8 +362,7 @@ class _FingerprintScreenState extends State<FingerprintScreen>
 
     if (result.success) {
       final now = DateTime.now();
-      final label =
-          'Sidik Jari ${_fingerprints.length + 1}';
+      final label = 'Sidik Jari ${_fingerprints.length + 1}';
       final addedAt =
           '${now.day.toString().padLeft(2, '0')}/${now.month.toString().padLeft(2, '0')}/${now.year} '
           '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
@@ -237,7 +384,7 @@ class _FingerprintScreenState extends State<FingerprintScreen>
   }
 
   // -------------------------------------------------------------------
-  // FIX BUG #4: Hapus sidik jari
+  // FIX BUG #4: Hapus sidik jari (satu per satu)
   // -------------------------------------------------------------------
   Future<void> _deleteFingerprint(FingerprintModel fp) async {
     if (fp.id == null) return;
@@ -681,7 +828,7 @@ class _FingerprintScreenState extends State<FingerprintScreen>
             // Padding bottom agar tidak tertutup FAB
             padding: const EdgeInsets.fromLTRB(20, 4, 20, 100),
             itemCount: fps.length,
-            separatorBuilder: (_, _) => const SizedBox(height: 10),
+            separatorBuilder: (_, __) => const SizedBox(height: 10),
             itemBuilder: (_, i) {
               final fp = fps[i];
               return _FingerprintTile(
