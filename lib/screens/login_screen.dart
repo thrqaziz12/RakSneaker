@@ -24,10 +24,17 @@
 // v6 — Pop-up Warning:
 //   - Validasi form menggunakan dialog pop-up di tengah layar
 //   - Tidak ada lagi error text inline di bawah field
+//
+// v7 — Fix login biometrik saat sidik jari dinonaktifkan:
+//   - Tambah pengecekan apakah user memiliki sidik jari aktif di SQLite
+//     sebelum memproses login biometrik
+//   - Jika fitur sidik jari dinonaktifkan (tidak ada record di tabel
+//     'fingerprints'), tampilkan dialog peringatan dan batalkan login
 // =============================================================================
 
 import 'package:flutter/material.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
+import '../core/database_helper.dart';
 import '../services/auth_service.dart';
 import '../services/biometric_service.dart';
 import '../services/session_service.dart';
@@ -59,6 +66,7 @@ class _LoginScreenState extends State<LoginScreen>
   final _authService        = AuthService();
   final _biometricService   = BiometricService();
   final _sessionService     = SessionService();
+  final _dbHelper           = DatabaseHelper();
 
   bool    _isLoading          = false;
   bool    _isBiometricLoading = false;
@@ -103,6 +111,24 @@ class _LoginScreenState extends State<LoginScreen>
     _usernameController.dispose();
     _passwordController.dispose();
     super.dispose();
+  }
+
+  // ─────────────────────────────────────────────
+  //  Cek apakah user telah mengaktifkan sidik jari
+  //  (ada >= 1 record di tabel 'fingerprints' SQLite)
+  // ─────────────────────────────────────────────
+  Future<bool> _isFingerprintEnabledForUser(String username) async {
+    final user = await _authService.getUserByUsername(username);
+    if (user == null || user.id == null) return false;
+
+    final db = await _dbHelper.database;
+    final rows = await db.query(
+      'fingerprints',
+      where: 'userId = ?',
+      whereArgs: [user.id],
+      limit: 1,
+    );
+    return rows.isNotEmpty;
   }
 
   // ─────────────────────────────────────────────
@@ -263,6 +289,11 @@ class _LoginScreenState extends State<LoginScreen>
 
   /// Login menggunakan biometrik (fingerprint) — tidak perlu input username.
   /// Username diambil otomatis dari riwayat login terakhir yang tersimpan.
+  ///
+  /// PERBAIKAN v7: Sebelum memproses autentikasi biometrik, cek terlebih
+  /// dahulu apakah user sudah mengaktifkan fitur sidik jari (ada record
+  /// di tabel 'fingerprints' SQLite). Jika fitur dinonaktifkan, tampilkan
+  /// dialog peringatan dan batalkan proses login biometrik.
   Future<void> _handleBiometricLogin() async {
     final savedUsername = await _authService.getLastLoggedInUsername();
 
@@ -273,6 +304,17 @@ class _LoginScreenState extends State<LoginScreen>
       );
       return;
     }
+
+    // ── PERBAIKAN: Cek apakah fitur sidik jari diaktifkan untuk user ini ──
+    final fingerprintEnabled = await _isFingerprintEnabledForUser(savedUsername);
+    if (!fingerprintEnabled) {
+      _showWarningDialog(
+        'Fitur sidik jari belum diaktifkan untuk akun "$savedUsername".\n\n'
+        'Aktifkan terlebih dahulu melalui:\nProfil → Sidik Jari → Aktifkan toggle.',
+      );
+      return;
+    }
+    // ──────────────────────────────────────────────────────────────────────
 
     setState(() {
       _isBiometricLoading = true;
