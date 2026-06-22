@@ -5,6 +5,7 @@
 //   - Tambah jadwal baru (nama sepatu, merek, tanggal+waktu, keterangan)
 //   - Hapus jadwal
 //   - Notifikasi dijadwalkan otomatis beberapa menit atau saat waktu perawatan
+//   - Konversi zona waktu: WIB, WITA, WIT, dan London
 // =============================================================================
 
 import 'package:flutter/material.dart';
@@ -24,6 +25,76 @@ const _kBorder = Color(0xFFE8E0DB);
 // mengubah kapan notifikasi muncul di seluruh aplikasi.
 const int _kNotifMinutesBefore = 30;
 
+// ---------------------------------------------------------------------------
+// Helper konversi zona waktu
+// ---------------------------------------------------------------------------
+
+/// Zona waktu yang didukung untuk konversi tampilan jadwal.
+enum ZonaWaktu { wib, wita, wit, london }
+
+extension ZonaWaktuExt on ZonaWaktu {
+  String get label {
+    switch (this) {
+      case ZonaWaktu.wib:
+        return 'WIB';
+      case ZonaWaktu.wita:
+        return 'WITA';
+      case ZonaWaktu.wit:
+        return 'WIT';
+      case ZonaWaktu.london:
+        return 'London';
+    }
+  }
+
+  /// Offset UTC dalam jam untuk setiap zona waktu.
+  /// London mengikuti BST (UTC+1) saat musim panas (Mar–Okt) dan GMT (UTC+0) saat musim dingin.
+  int offsetJam(DateTime dt) {
+    switch (this) {
+      case ZonaWaktu.wib:
+        return 7; // UTC+7
+      case ZonaWaktu.wita:
+        return 8; // UTC+8
+      case ZonaWaktu.wit:
+        return 9; // UTC+9
+      case ZonaWaktu.london:
+        // BST aktif dari akhir Maret hingga akhir Oktober
+        return _isBST(dt) ? 1 : 0;
+    }
+  }
+
+  /// Cek apakah tanggal termasuk periode British Summer Time (BST).
+  /// BST berlaku dari Minggu terakhir Maret hingga Minggu terakhir Oktober.
+  bool _isBST(DateTime dt) {
+    if (dt.month < 3 || dt.month > 10) return false;
+    if (dt.month > 3 && dt.month < 10) return true;
+    // Hitung Minggu terakhir Maret
+    if (dt.month == 3) {
+      final lastSunday = _lastSundayOfMonth(dt.year, 3);
+      return dt.day >= lastSunday;
+    }
+    // Hitung Minggu terakhir Oktober
+    final lastSunday = _lastSundayOfMonth(dt.year, 10);
+    return dt.day < lastSunday;
+  }
+
+  int _lastSundayOfMonth(int year, int month) {
+    // Mulai dari hari terakhir bulan tersebut, mundur hingga Minggu
+    final lastDay = DateTime(year, month + 1, 0);
+    return lastDay.day - lastDay.weekday % 7;
+  }
+}
+
+/// Konversi DateTime (WIB = UTC+7) ke zona waktu yang dipilih.
+/// Asumsi: DateTime dari database disimpan dalam zona WIB (UTC+7).
+DateTime konversiKeZona(DateTime dtWib, ZonaWaktu zona) {
+  // Konversi ke UTC dulu, lalu tambahkan offset target
+  final utc = dtWib.subtract(const Duration(hours: 7));
+  final offset = zona.offsetJam(dtWib);
+  return utc.add(Duration(hours: offset));
+}
+
+// ---------------------------------------------------------------------------
+
 class JadwalScreen extends StatefulWidget {
   final int userId;
   const JadwalScreen({super.key, required this.userId});
@@ -36,6 +107,9 @@ class _JadwalScreenState extends State<JadwalScreen> {
   final JadwalService _jadwalService = JadwalService();
   final NotificationService _notifService = NotificationService();
   List<JadwalModel> _jadwalList = [];
+
+  /// Zona waktu yang sedang dipilih pengguna untuk tampilan
+  ZonaWaktu _zonaAktif = ZonaWaktu.wib;
 
   @override
   void initState() {
@@ -135,6 +209,161 @@ class _JadwalScreenState extends State<JadwalScreen> {
     );
   }
 
+  /// Tampilkan bottom sheet pemilih zona waktu
+  void _showZonaPicker() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        decoration: const BoxDecoration(
+          color: _kSurface,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Handle bar
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 20),
+                decoration: BoxDecoration(
+                  color: _kBorder,
+                  borderRadius: BorderRadius.circular(999),
+                ),
+              ),
+            ),
+            Row(
+              children: [
+                Icon(Icons.public_rounded, color: _kPrimary, size: 20),
+                const SizedBox(width: 8),
+                const Text(
+                  'Pilih Zona Waktu',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: _kTextPrimary,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Waktu jadwal akan dikonversi ke zona yang dipilih.',
+              style: TextStyle(fontSize: 13, color: _kTextMuted),
+            ),
+            const SizedBox(height: 16),
+            ...ZonaWaktu.values.map((zona) {
+              final isActive = zona == _zonaAktif;
+              final now = DateTime.now();
+              final converted = konversiKeZona(now, zona);
+              final previewStr =
+                  '${converted.hour.toString().padLeft(2, '0')}:${converted.minute.toString().padLeft(2, '0')} ${zona.label}';
+              return GestureDetector(
+                onTap: () {
+                  setState(() => _zonaAktif = zona);
+                  Navigator.pop(ctx);
+                },
+                child: Container(
+                  margin: const EdgeInsets.only(bottom: 10),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 14,
+                  ),
+                  decoration: BoxDecoration(
+                    color: isActive
+                        ? _kPrimary.withValues(alpha: 0.08)
+                        : const Color(0xFFFAF8F6),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: isActive ? _kPrimary : _kBorder,
+                      width: isActive ? 1.5 : 1.0,
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.schedule_rounded,
+                        size: 18,
+                        color: isActive ? _kPrimary : _kTextMuted,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              _zonaLabel(zona),
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: isActive ? _kPrimary : _kTextPrimary,
+                              ),
+                            ),
+                            Text(
+                              _zonaDescription(zona, now),
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: _kTextMuted,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Text(
+                        previewStr,
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: isActive ? _kPrimary : _kTextMuted,
+                        ),
+                      ),
+                      if (isActive) ...[
+                        const SizedBox(width: 8),
+                        Icon(Icons.check_circle_rounded,
+                            size: 18, color: _kPrimary),
+                      ],
+                    ],
+                  ),
+                ),
+              );
+            }),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _zonaLabel(ZonaWaktu zona) {
+    switch (zona) {
+      case ZonaWaktu.wib:
+        return 'WIB — Waktu Indonesia Barat';
+      case ZonaWaktu.wita:
+        return 'WITA — Waktu Indonesia Tengah';
+      case ZonaWaktu.wit:
+        return 'WIT — Waktu Indonesia Timur';
+      case ZonaWaktu.london:
+        return 'London (GMT/BST)';
+    }
+  }
+
+  String _zonaDescription(ZonaWaktu zona, DateTime dt) {
+    switch (zona) {
+      case ZonaWaktu.wib:
+        return 'Jakarta, Bandung, Surabaya · UTC+7';
+      case ZonaWaktu.wita:
+        return 'Makassar, Bali, Lombok · UTC+8';
+      case ZonaWaktu.wit:
+        return 'Jayapura, Ambon, Sorong · UTC+9';
+      case ZonaWaktu.london:
+        final bst = ZonaWaktu.london._isBST(dt);
+        return bst ? 'British Summer Time · UTC+1' : 'Greenwich Mean Time · UTC+0';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -157,6 +386,39 @@ class _JadwalScreenState extends State<JadwalScreen> {
           ],
         ),
         actions: [
+          // Tombol pemilih zona waktu
+          GestureDetector(
+            onTap: _showZonaPicker,
+            child: Container(
+              margin: const EdgeInsets.only(right: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: _kPrimary.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: _kPrimary.withValues(alpha: 0.25),
+                ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.public_rounded, size: 14, color: _kPrimary),
+                  const SizedBox(width: 4),
+                  Text(
+                    _zonaAktif.label,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: _kPrimary,
+                    ),
+                  ),
+                  const SizedBox(width: 2),
+                  Icon(Icons.arrow_drop_down_rounded,
+                      size: 16, color: _kPrimary),
+                ],
+              ),
+            ),
+          ),
           Padding(
             padding: const EdgeInsets.only(right: 12),
             child: FilledButton.icon(
@@ -259,10 +521,52 @@ class _JadwalScreenState extends State<JadwalScreen> {
     return ListView(
       padding: const EdgeInsets.only(bottom: 100),
       children: [
+        // Banner zona waktu aktif
+        _buildZonaBanner(),
         if (mendatang.isNotEmpty)
           ..._buildSection('Mendatang', mendatang, false),
         if (lewat.isNotEmpty) ..._buildSection('Sudah Lewat', lewat, true),
       ],
+    );
+  }
+
+  /// Banner kecil menampilkan zona waktu yang sedang aktif
+  Widget _buildZonaBanner() {
+    final now = DateTime.now();
+    final converted = konversiKeZona(now, _zonaAktif);
+    final desc = _zonaDescription(_zonaAktif, now);
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: _kPrimary.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: _kPrimary.withValues(alpha: 0.15)),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.public_rounded, size: 16, color: _kPrimary),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              'Tampil dalam ${_zonaAktif.label} · $desc',
+              style: TextStyle(
+                fontSize: 12,
+                color: _kPrimary,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+          Text(
+            'Sekarang ${converted.hour.toString().padLeft(2, '0')}:${converted.minute.toString().padLeft(2, '0')}',
+            style: TextStyle(
+              fontSize: 12,
+              color: _kPrimary,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -320,14 +624,16 @@ class _JadwalScreenState extends State<JadwalScreen> {
   }
 
   Widget _buildJadwalCard(JadwalModel jadwal, bool isPast) {
-    final dt = jadwal.tanggalWaktu;
+    // Konversi ke zona waktu yang dipilih
+    final dtKonversi = konversiKeZona(jadwal.tanggalWaktu, _zonaAktif);
     final timeStr =
-        '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+        '${dtKonversi.hour.toString().padLeft(2, '0')}:${dtKonversi.minute.toString().padLeft(2, '0')} ${_zonaAktif.label}';
     const bulan = [
       'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
       'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des',
     ];
-    final dateStr = '${dt.day} ${bulan[dt.month - 1]} ${dt.year}';
+    final dateStr =
+        '${dtKonversi.day} ${bulan[dtKonversi.month - 1]} ${dtKonversi.year}';
 
     return Dismissible(
       key: Key(jadwal.id),
@@ -449,7 +755,10 @@ class _JadwalScreenState extends State<JadwalScreen> {
                   ),
                 ],
               ),
-              if (jadwal.keterangan.isNotEmpty) ...[  
+              // Tampilkan konversi waktu di semua zona lain
+              const SizedBox(height: 8),
+              _buildKonversiRow(jadwal.tanggalWaktu, isPast),
+              if (jadwal.keterangan.isNotEmpty) ...[
                 const SizedBox(height: 10),
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -502,6 +811,42 @@ class _JadwalScreenState extends State<JadwalScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  /// Baris konversi waktu semua zona (minus zona yang sedang aktif)
+  Widget _buildKonversiRow(DateTime dtWib, bool isPast) {
+    final zonaLain = ZonaWaktu.values.where((z) => z != _zonaAktif).toList();
+    return Wrap(
+      spacing: 6,
+      runSpacing: 4,
+      children: zonaLain.map((zona) {
+        final converted = konversiKeZona(dtWib, zona);
+        final jam =
+            '${converted.hour.toString().padLeft(2, '0')}:${converted.minute.toString().padLeft(2, '0')}';
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(
+            color: isPast
+                ? const Color(0xFFEEEEEE)
+                : _kPrimary.withValues(alpha: 0.05),
+            borderRadius: BorderRadius.circular(6),
+            border: Border.all(
+              color: isPast
+                  ? _kBorder
+                  : _kPrimary.withValues(alpha: 0.12),
+            ),
+          ),
+          child: Text(
+            '${zona.label} $jam',
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: isPast ? _kTextMuted : _kTextMuted,
+            ),
+          ),
+        );
+      }).toList(),
     );
   }
 }
@@ -629,6 +974,86 @@ class _TambahJadwalSheetState extends State<_TambahJadwalSheet> {
     return '${dt.day} ${bulan[dt.month - 1]} ${dt.year}';
   }
 
+  /// Tampilkan preview konversi waktu di semua zona berdasarkan input pengguna
+  Widget _buildKonversiPreview() {
+    if (_selectedDate == null || _selectedTime == null) {
+      return const SizedBox.shrink();
+    }
+    final dtWib = DateTime(
+      _selectedDate!.year,
+      _selectedDate!.month,
+      _selectedDate!.day,
+      _selectedTime!.hour,
+      _selectedTime!.minute,
+    );
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Icon(Icons.public_rounded, size: 14, color: _kPrimary),
+            const SizedBox(width: 6),
+            const Text(
+              'Konversi Zona Waktu',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: _kTextPrimary,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 6,
+          children: ZonaWaktu.values.map((zona) {
+            final converted = konversiKeZona(dtWib, zona);
+            final jam =
+                '${converted.hour.toString().padLeft(2, '0')}:${converted.minute.toString().padLeft(2, '0')}';
+            return Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: _kPrimary.withValues(alpha: 0.06),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: _kPrimary.withValues(alpha: 0.2),
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    zona.label,
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: _kPrimary,
+                    ),
+                  ),
+                  Text(
+                    jam,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: _kTextPrimary,
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }).toList(),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          '* Input waktu diasumsikan dalam WIB (UTC+7)',
+          style: TextStyle(fontSize: 11, color: _kTextMuted),
+        ),
+      ],
+    );
+  }
+
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     if (_selectedDate == null) {
@@ -753,7 +1178,7 @@ class _TambahJadwalSheetState extends State<_TambahJadwalSheet> {
               ),
               const SizedBox(height: 16),
               // Tanggal & Waktu
-              _buildLabel('Tanggal & Waktu Perawatan', required: true),
+              _buildLabel('Tanggal & Waktu Perawatan (WIB)', required: true),
               const SizedBox(height: 6),
               Row(
                 children: [
@@ -772,7 +1197,7 @@ class _TambahJadwalSheetState extends State<_TambahJadwalSheet> {
                     child: _PickerButton(
                       icon: Icons.access_time_rounded,
                       label: _selectedTime != null
-                          ? '${_selectedTime!.hour.toString().padLeft(2, '0')}:${_selectedTime!.minute.toString().padLeft(2, '0')}'
+                          ? '${_selectedTime!.hour.toString().padLeft(2, '0')}:${_selectedTime!.minute.toString().padLeft(2, '0')} WIB'
                           : 'Pilih Waktu',
                       hasValue: _selectedTime != null,
                       onTap: _pickTime,
@@ -780,6 +1205,8 @@ class _TambahJadwalSheetState extends State<_TambahJadwalSheet> {
                   ),
                 ],
               ),
+              // Preview konversi zona waktu
+              _buildKonversiPreview(),
               const SizedBox(height: 16),
               // Keterangan
               _buildLabel('Keterangan', required: false),
