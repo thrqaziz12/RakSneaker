@@ -447,13 +447,16 @@ class _JadwalScreenState extends State<JadwalScreen> {
     );
   }
 
+  // FIX #1: Bungkus Column dengan SingleChildScrollView agar tidak overflow
+  // ke bawah (error baris ~223) ketika konten lebih tinggi dari layar.
   Widget _buildEmptyState() {
-    return Center(
+    return SingleChildScrollView(
       child: Padding(
         padding: const EdgeInsets.all(32),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
+            const SizedBox(height: 40),
             Container(
               width: 100,
               height: 100,
@@ -740,14 +743,17 @@ class _JadwalScreenState extends State<JadwalScreen> {
                 ],
               ),
               const SizedBox(height: 12),
-              Row(
+              // FIX #2: Ganti Row biasa dengan Wrap agar chip tidak overflow
+              // ke kanan (error baris ~374) ketika teks chip panjang.
+              Wrap(
+                spacing: 8,
+                runSpacing: 6,
                 children: [
                   _InfoChip(
                     icon: Icons.calendar_today_rounded,
                     label: dateStr,
                     isPast: isPast,
                   ),
-                  const SizedBox(width: 8),
                   _InfoChip(
                     icon: Icons.access_time_rounded,
                     label: timeStr,
@@ -794,14 +800,17 @@ class _JadwalScreenState extends State<JadwalScreen> {
                       color: _kPrimary.withValues(alpha: 0.7),
                     ),
                     const SizedBox(width: 4),
-                    Text(
-                      _kNotifMinutesBefore == 0
-                          ? 'Notifikasi tepat saat waktu perawatan'
-                          : 'Notifikasi $_kNotifMinutesBefore menit sebelum perawatan',
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: _kPrimary.withValues(alpha: 0.8),
-                        fontWeight: FontWeight.w500,
+                    Expanded(
+                      child: Text(
+                        _kNotifMinutesBefore == 0
+                            ? 'Notifikasi tepat saat waktu perawatan'
+                            : 'Notifikasi $_kNotifMinutesBefore menit sebelum perawatan',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: _kPrimary.withValues(alpha: 0.8),
+                          fontWeight: FontWeight.w500,
+                        ),
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                   ],
@@ -1142,12 +1151,15 @@ class _TambahJadwalSheetState extends State<_TambahJadwalSheet> {
                     ),
                   ),
                   const SizedBox(width: 12),
-                  const Text(
-                    'Tambah Jadwal Perawatan',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                      color: _kTextPrimary,
+                  const Expanded(
+                    child: Text(
+                      'Tambah Jadwal Perawatan',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                        color: _kTextPrimary,
+                      ),
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                 ],
