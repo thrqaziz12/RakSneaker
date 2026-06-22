@@ -30,21 +30,21 @@ import '../services/session_service.dart';
 import 'fingerprint_screen.dart';
 import 'login_screen.dart';
 
-const _kPrimary       = Color(0xFFFF6B35);
-const _kBg            = Color(0xFFFFF8F5);
-const _kSurface       = Color(0xFFFFFFFF);
+const _kPrimary = Color(0xFFFF6B35);
+const _kBg = Color(0xFFFFF8F5);
+const _kSurface = Color(0xFFFFFFFF);
 const _kSurfaceAccent = Color(0xFFFFF0E8);
-const _kTextPrimary   = Color(0xFF1A1A1A);
-const _kTextMuted     = Color(0xFF6B6B6B);
-const _kTextFaint     = Color(0xFFB0B0B0);
-const _kBorder        = Color(0xFFE8E0DB);
-const _kError         = Color(0xFFD92B4B);
+const _kTextPrimary = Color(0xFF1A1A1A);
+const _kTextMuted = Color(0xFF6B6B6B);
+const _kTextFaint = Color(0xFFB0B0B0);
+const _kBorder = Color(0xFFE8E0DB);
+const _kError = Color(0xFFD92B4B);
 
 // ---------------------------------------------------------------------------
 // Data Pesan & Kesan — READ ONLY, tidak dapat ditambah/edit/hapus
 // ---------------------------------------------------------------------------
 const _kNamaMahasiswa = 'Muhammad Thoriq Aziz';
-const _kNIM           = '123230233';
+const _kNIM = '123230233';
 const _kPesan =
     'Mata kuliah Teknologi Pemrograman Mobile sangat bermanfaat dan memberikan '
     'pengalaman nyata dalam membangun aplikasi mobile menggunakan Flutter. '
@@ -52,9 +52,7 @@ const _kPesan =
     'sehingga mahasiswa semakin siap terjun ke dunia industri.';
 const _kKesan =
     'Kesan selama mengikuti mata kuliah ini sangat positif. Proses belajar yang '
-    'menyenangkan, tugas-tugas yang menantang, serta bimbingan dosen yang sabar '
-    'membuat pemahaman terhadap pengembangan aplikasi mobile menjadi jauh lebih '
-    'mendalam. Terima kasih atas ilmu yang telah diberikan!';
+    'menyenangkan, dan sangat banyak tugas-tugas yang menantang';
 
 class ProfileScreen extends StatelessWidget {
   final String username;
@@ -85,8 +83,7 @@ class ProfileScreen extends StatelessWidget {
                 ),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child:
-                  Icon(MdiIcons.shoeSneaker, color: Colors.white, size: 18),
+              child: Icon(MdiIcons.shoeSneaker, color: Colors.white, size: 18),
             ),
             const SizedBox(width: 10),
             const Text(
@@ -234,12 +231,10 @@ class ProfileScreen extends StatelessWidget {
       barrierDismissible: false,
       builder: (ctx) => AlertDialog(
         backgroundColor: _kSurface,
-        shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text(
           'Logout',
-          style:
-              TextStyle(color: _kTextPrimary, fontWeight: FontWeight.bold),
+          style: TextStyle(color: _kTextPrimary, fontWeight: FontWeight.bold),
         ),
         content: const Text(
           'Yakin ingin keluar dari akun ini?',
@@ -248,8 +243,7 @@ class ProfileScreen extends StatelessWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child:
-                const Text('Batal', style: TextStyle(color: _kTextMuted)),
+            child: const Text('Batal', style: TextStyle(color: _kTextMuted)),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
@@ -282,7 +276,7 @@ class ProfileScreen extends StatelessWidget {
 }
 
 // ---------------------------------------------------------------------------
-// Widget Pesan & Kesan Card — READ ONLY
+// Widget Pesan & Kesan Card
 // Menampilkan identitas mahasiswa, pesan, dan kesan selama kuliah
 // Teknologi Pemrograman Mobile. Tidak ada aksi tambah/edit/hapus.
 // ---------------------------------------------------------------------------
@@ -316,9 +310,7 @@ class _PesanKesanCard extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: _kSurfaceAccent,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: _kPrimary.withValues(alpha: 0.20),
-                  ),
+                  border: Border.all(color: _kPrimary.withValues(alpha: 0.20)),
                 ),
                 child: const Icon(
                   Icons.school_rounded,
@@ -342,33 +334,9 @@ class _PesanKesanCard extends StatelessWidget {
                     SizedBox(height: 2),
                     Text(
                       'NIM: $_kNIM',
-                      style: TextStyle(
-                        color: _kTextMuted,
-                        fontSize: 12,
-                      ),
+                      style: TextStyle(color: _kTextMuted, fontSize: 12),
                     ),
                   ],
-                ),
-              ),
-              // Badge read-only
-              Container(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: _kSurfaceAccent,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                    color: _kPrimary.withValues(alpha: 0.25),
-                  ),
-                ),
-                child: const Text(
-                  'Read Only',
-                  style: TextStyle(
-                    color: _kPrimary,
-                    fontSize: 10,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 0.4,
-                  ),
                 ),
               ),
             ],
@@ -381,8 +349,7 @@ class _PesanKesanCard extends StatelessWidget {
           // Mata kuliah
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.symmetric(
-                horizontal: 12, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
               color: _kSurfaceAccent,
               borderRadius: BorderRadius.circular(10),
@@ -401,35 +368,21 @@ class _PesanKesanCard extends StatelessWidget {
           const SizedBox(height: 16),
 
           // Pesan
-          _SectionLabel(
-            icon: Icons.message_rounded,
-            label: 'Pesan',
-          ),
+          _SectionLabel(icon: Icons.message_rounded, label: 'Pesan'),
           const SizedBox(height: 8),
           const Text(
             _kPesan,
-            style: TextStyle(
-              color: _kTextMuted,
-              fontSize: 13,
-              height: 1.6,
-            ),
+            style: TextStyle(color: _kTextMuted, fontSize: 13, height: 1.6),
           ),
 
           const SizedBox(height: 16),
 
           // Kesan
-          _SectionLabel(
-            icon: Icons.favorite_rounded,
-            label: 'Kesan',
-          ),
+          _SectionLabel(icon: Icons.favorite_rounded, label: 'Kesan'),
           const SizedBox(height: 8),
           const Text(
             _kKesan,
-            style: TextStyle(
-              color: _kTextMuted,
-              fontSize: 13,
-              height: 1.6,
-            ),
+            style: TextStyle(color: _kTextMuted, fontSize: 13, height: 1.6),
           ),
         ],
       ),
@@ -469,10 +422,10 @@ class _SectionLabel extends StatelessWidget {
 // Widget menu tile
 // ---------------------------------------------------------------------------
 class _MenuTile extends StatelessWidget {
-  final IconData     icon;
-  final Color        iconColor;
-  final String       label;
-  final String       sublabel;
+  final IconData icon;
+  final Color iconColor;
+  final String label;
+  final String sublabel;
   final VoidCallback onTap;
 
   const _MenuTile({
@@ -525,8 +478,7 @@ class _MenuTile extends StatelessWidget {
                     const SizedBox(height: 2),
                     Text(
                       sublabel,
-                      style: const TextStyle(
-                          color: _kTextMuted, fontSize: 12),
+                      style: const TextStyle(color: _kTextMuted, fontSize: 12),
                     ),
                   ],
                 ),
