@@ -20,6 +20,10 @@
 //
 // v5 — Session:
 //   - Simpan sesi via SessionService setelah login password maupun biometrik
+//
+// v6 — Pop-up Warning:
+//   - Validasi form menggunakan dialog pop-up di tengah layar
+//   - Tidak ada lagi error text inline di bawah field
 // =============================================================================
 
 import 'package:flutter/material.dart';
@@ -50,7 +54,6 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen>
     with SingleTickerProviderStateMixin {
-  final _formKey            = GlobalKey<FormState>();
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
   final _authService        = AuthService();
@@ -102,8 +105,121 @@ class _LoginScreenState extends State<LoginScreen>
     super.dispose();
   }
 
+  // ─────────────────────────────────────────────
+  //  Pop-up dialog peringatan di tengah layar
+  // ─────────────────────────────────────────────
+  void _showWarningDialog(String message) {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (ctx) => Dialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        elevation: 0,
+        backgroundColor: Colors.transparent,
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: kSurfaceLight,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.12),
+                blurRadius: 24,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Ikon peringatan
+              Container(
+                width: 60,
+                height: 60,
+                decoration: BoxDecoration(
+                  color: kErrorColor.withValues(alpha: 0.10),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.warning_amber_rounded,
+                  color: kErrorColor,
+                  size: 32,
+                ),
+              ),
+              const SizedBox(height: 16),
+              // Judul
+              const Text(
+                'Perhatian',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: kTextPrimary,
+                ),
+              ),
+              const SizedBox(height: 10),
+              // Pesan
+              Text(
+                message,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: kTextMuted,
+                  height: 1.5,
+                ),
+              ),
+              const SizedBox(height: 24),
+              // Tombol OK
+              SizedBox(
+                width: double.infinity,
+                height: 46,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.of(ctx).pop(),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: kPrimaryColor,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    elevation: 0,
+                  ),
+                  child: const Text(
+                    'OK',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ─────────────────────────────────────────────
+  //  Validasi manual (tanpa Form + validator)
+  // ─────────────────────────────────────────────
+  bool _validateInputs() {
+    final username = _usernameController.text.trim();
+    final password = _passwordController.text;
+
+    if (username.isEmpty) {
+      _showWarningDialog('Username tidak boleh kosong.\nSilakan masukkan username kamu.');
+      return false;
+    }
+    if (password.isEmpty) {
+      _showWarningDialog('Password tidak boleh kosong.\nSilakan masukkan password kamu.');
+      return false;
+    }
+    return true;
+  }
+
   Future<void> _handleLogin() async {
-    if (!_formKey.currentState!.validate()) return;
+    if (!_validateInputs()) return;
 
     setState(() {
       _isLoading    = true;
@@ -140,9 +256,8 @@ class _LoginScreenState extends State<LoginScreen>
         ),
       );
     } else {
-      setState(() {
-        _errorMessage = 'Username atau password salah';
-      });
+      // Username/password salah — tampilkan pop-up
+      _showWarningDialog('Username atau password yang kamu masukkan salah.\nSilakan coba lagi.');
     }
   }
 
@@ -152,11 +267,10 @@ class _LoginScreenState extends State<LoginScreen>
     final savedUsername = await _authService.getLastLoggedInUsername();
 
     if (savedUsername == null || savedUsername.isEmpty) {
-      setState(() {
-        _errorMessage =
-            'Silakan login dengan username & password terlebih dahulu, '
-            'lalu Anda bisa menggunakan sidik jari untuk login berikutnya.';
-      });
+      _showWarningDialog(
+        'Silakan login dengan username & password terlebih dahulu, '
+        'lalu Anda bisa menggunakan sidik jari untuk login berikutnya.',
+      );
       return;
     }
 
@@ -194,26 +308,20 @@ class _LoginScreenState extends State<LoginScreen>
           ),
         );
       } else {
-        setState(() {
-          _errorMessage =
-              'Akun tidak ditemukan. Silakan login dengan username & password.';
-        });
+        _showWarningDialog(
+          'Akun tidak ditemukan.\nSilakan login dengan username & password.',
+        );
       }
     } else {
       if (result.error == BiometricError.notEnrolled) {
-        setState(() {
-          _errorMessage =
-              'Tidak ada sidik jari terdaftar di perangkat. '
-              'Daftarkan dulu di Pengaturan perangkat.';
-        });
+        _showWarningDialog(
+          'Tidak ada sidik jari terdaftar di perangkat.\n'
+          'Daftarkan dulu di Pengaturan perangkat.',
+        );
       } else if (result.error == BiometricError.notSupported) {
-        setState(() {
-          _errorMessage = 'Perangkat tidak mendukung autentikasi biometrik.';
-        });
+        _showWarningDialog('Perangkat tidak mendukung autentikasi biometrik.');
       } else {
-        setState(() {
-          _errorMessage = 'Autentikasi biometrik dibatalkan atau gagal.';
-        });
+        _showWarningDialog('Autentikasi biometrik dibatalkan atau gagal.');
       }
     }
   }
@@ -302,87 +410,36 @@ class _LoginScreenState extends State<LoginScreen>
                       ),
                       const SizedBox(height: 48),
 
-                      Form(
-                        key: _formKey,
-                        child: Column(
-                          children: [
-                            _buildTextField(
-                              controller: _usernameController,
-                              label: 'Username',
-                              hint: 'Masukkan username',
-                              icon: Icons.person_outline_rounded,
-                              validator: (val) {
-                                if (val == null || val.trim().isEmpty) {
-                                  return 'Username tidak boleh kosong';
-                                }
-                                return null;
-                              },
-                            ),
-                            const SizedBox(height: 16),
-                            _buildTextField(
-                              controller: _passwordController,
-                              label: 'Password',
-                              hint: 'Masukkan password',
-                              icon: Icons.lock_outline_rounded,
-                              obscureText: _obscurePassword,
-                              suffixIcon: IconButton(
-                                icon: Icon(
-                                  _obscurePassword
-                                      ? Icons.visibility_off_outlined
-                                      : Icons.visibility_outlined,
-                                  color: kTextFaint,
-                                  size: 20,
-                                ),
-                                onPressed: () => setState(
-                                  () => _obscurePassword = !_obscurePassword,
-                                ),
+                      Column(
+                        children: [
+                          _buildTextField(
+                            controller: _usernameController,
+                            label: 'Username',
+                            hint: 'Masukkan username',
+                            icon: Icons.person_outline_rounded,
+                          ),
+                          const SizedBox(height: 16),
+                          _buildTextField(
+                            controller: _passwordController,
+                            label: 'Password',
+                            hint: 'Masukkan password',
+                            icon: Icons.lock_outline_rounded,
+                            obscureText: _obscurePassword,
+                            suffixIcon: IconButton(
+                              icon: Icon(
+                                _obscurePassword
+                                    ? Icons.visibility_off_outlined
+                                    : Icons.visibility_outlined,
+                                color: kTextFaint,
+                                size: 20,
                               ),
-                              validator: (val) {
-                                if (val == null || val.isEmpty) {
-                                  return 'Password tidak boleh kosong';
-                                }
-                                return null;
-                              },
+                              onPressed: () => setState(
+                                () => _obscurePassword = !_obscurePassword,
+                              ),
                             ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
-
-                      if (_errorMessage != null) ...[
-                        const SizedBox(height: 14),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 14,
-                            vertical: 10,
-                          ),
-                          decoration: BoxDecoration(
-                            color: kErrorColor.withValues(alpha: 0.08),
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(
-                              color: kErrorColor.withValues(alpha: 0.25),
-                            ),
-                          ),
-                          child: Row(
-                            children: [
-                              const Icon(
-                                Icons.error_outline,
-                                color: kErrorColor,
-                                size: 18,
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  _errorMessage!,
-                                  style: const TextStyle(
-                                    color: kErrorColor,
-                                    fontSize: 13,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
 
                       const SizedBox(height: 32),
 
@@ -551,7 +608,6 @@ class _LoginScreenState extends State<LoginScreen>
     required IconData icon,
     bool obscureText = false,
     Widget? suffixIcon,
-    String? Function(String?)? validator,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -565,10 +621,9 @@ class _LoginScreenState extends State<LoginScreen>
           ),
         ),
         const SizedBox(height: 8),
-        TextFormField(
+        TextField(
           controller: controller,
           obscureText: obscureText,
-          validator: validator,
           style: const TextStyle(color: kTextPrimary),
           decoration: InputDecoration(
             hintText: hint,
@@ -590,16 +645,6 @@ class _LoginScreenState extends State<LoginScreen>
               borderSide:
                   const BorderSide(color: kPrimaryColor, width: 1.5),
             ),
-            errorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: kErrorColor, width: 1),
-            ),
-            focusedErrorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide:
-                  const BorderSide(color: kErrorColor, width: 1.5),
-            ),
-            errorStyle: const TextStyle(color: kErrorColor),
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 16,
               vertical: 14,
