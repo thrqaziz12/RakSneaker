@@ -320,28 +320,38 @@ class _KoleksiCard extends StatelessWidget {
             ),
           ],
         ),
+        // FIX: Ganti Column menjadi Column dalam Flexible agar tidak overflow.
+        // Bungkus seluruh isi card dengan Column yang menggunakan mainAxisSize.min
+        // dan bungkus bagian teks dengan Flexible supaya konten teks tidak
+        // memaksa tinggi card melebihi batas yang diberikan GridView.
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
           children: [
-            ClipRRect(
-              borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(14),
-              ),
-              child: AspectRatio(
-                aspectRatio: 1.0,
-                child: hasImage
-                    ? Image.file(
-                        File(item.images.first),
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, _, _) => _imagePlaceholder(),
-                      )
-                    : _imagePlaceholder(),
+            // Gambar mengisi sisa ruang yang tersedia (fleksibel)
+            Flexible(
+              child: ClipRRect(
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(14),
+                ),
+                child: AspectRatio(
+                  aspectRatio: 1.0,
+                  child: hasImage
+                      ? Image.file(
+                          File(item.images.first),
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => _imagePlaceholder(),
+                        )
+                      : _imagePlaceholder(),
+                ),
               ),
             ),
+            // Bagian teks: padding tetap, teks ellipsis agar tidak overflow
             Padding(
               padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
                     item.namaSepatu,
@@ -445,7 +455,7 @@ class _KoleksiDetailState extends State<_KoleksiDetail> {
                         child: Image.file(
                           File(imgs[_imgIdx]),
                           fit: BoxFit.cover,
-                          errorBuilder: (_, _, _) => Container(
+                          errorBuilder: (_, __, ___) => Container(
                             color: const Color(0xFFF3F0EC),
                             child: Icon(
                               MdiIcons.shoeSneaker,
@@ -463,7 +473,7 @@ class _KoleksiDetailState extends State<_KoleksiDetail> {
                         child: ListView.separated(
                           scrollDirection: Axis.horizontal,
                           itemCount: imgs.length,
-                          separatorBuilder: (_, _) => const SizedBox(width: 8),
+                          separatorBuilder: (_, __) => const SizedBox(width: 8),
                           itemBuilder: (_, i) => GestureDetector(
                             onTap: () => setState(() => _imgIdx = i),
                             child: Container(
@@ -480,7 +490,7 @@ class _KoleksiDetailState extends State<_KoleksiDetail> {
                                 child: Image.file(
                                   File(imgs[i]),
                                   fit: BoxFit.cover,
-                                  errorBuilder: (_, _, _) => const Icon(
+                                  errorBuilder: (_, __, ___) => const Icon(
                                     Icons.broken_image_outlined,
                                     size: 24,
                                     color: _kTextMuted,
@@ -927,7 +937,7 @@ class _KoleksiFormState extends State<_KoleksiForm> {
                         child: ListView.separated(
                           scrollDirection: Axis.horizontal,
                           itemCount: _images.length,
-                          separatorBuilder: (_, _) => const SizedBox(width: 8),
+                          separatorBuilder: (_, __) => const SizedBox(width: 8),
                           itemBuilder: (_, i) => Stack(
                             children: [
                               ClipRRect(
@@ -937,7 +947,7 @@ class _KoleksiFormState extends State<_KoleksiForm> {
                                   width: 96,
                                   height: 96,
                                   fit: BoxFit.cover,
-                                  errorBuilder: (_, _, _) => Container(
+                                  errorBuilder: (_, __, ___) => Container(
                                     width: 96,
                                     height: 96,
                                     color: const Color(0xFFF3F0EC),
