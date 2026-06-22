@@ -210,144 +210,145 @@ class _JadwalScreenState extends State<JadwalScreen> {
   }
 
   /// Tampilkan bottom sheet pemilih zona waktu
+  /// — bisa di-scroll dan label filter disederhanakan (hanya nama zona + jam)
   void _showZonaPicker() {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
-      builder: (ctx) => Container(
-        decoration: const BoxDecoration(
-          color: _kSurface,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        ),
-        padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Handle bar
-            Center(
-              child: Container(
-                width: 40,
-                height: 4,
-                margin: const EdgeInsets.only(bottom: 20),
-                decoration: BoxDecoration(
-                  color: _kBorder,
-                  borderRadius: BorderRadius.circular(999),
+      // isScrollControlled = true agar sheet bisa expand jika konten panjang
+      isScrollControlled: true,
+      builder: (ctx) => DraggableScrollableSheet(
+        initialChildSize: 0.55,
+        minChildSize: 0.4,
+        maxChildSize: 0.85,
+        expand: false,
+        builder: (ctx, scrollController) => Container(
+          decoration: const BoxDecoration(
+            color: _kSurface,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Handle bar — tidak ikut scroll
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(top: 12, bottom: 16),
+                  decoration: BoxDecoration(
+                    color: _kBorder,
+                    borderRadius: BorderRadius.circular(999),
+                  ),
                 ),
               ),
-            ),
-            Row(
-              children: [
-                Icon(Icons.public_rounded, color: _kPrimary, size: 20),
-                const SizedBox(width: 8),
-                const Text(
-                  'Pilih Zona Waktu',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                    color: _kTextPrimary,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Waktu jadwal akan dikonversi ke zona yang dipilih.',
-              style: TextStyle(fontSize: 13, color: _kTextMuted),
-            ),
-            const SizedBox(height: 16),
-            ...ZonaWaktu.values.map((zona) {
-              final isActive = zona == _zonaAktif;
-              final now = DateTime.now();
-              final converted = konversiKeZona(now, zona);
-              final previewStr =
-                  '${converted.hour.toString().padLeft(2, '0')}:${converted.minute.toString().padLeft(2, '0')} ${zona.label}';
-              return GestureDetector(
-                onTap: () {
-                  setState(() => _zonaAktif = zona);
-                  Navigator.pop(ctx);
-                },
-                child: Container(
-                  margin: const EdgeInsets.only(bottom: 10),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 14,
-                  ),
-                  decoration: BoxDecoration(
-                    color: isActive
-                        ? _kPrimary.withValues(alpha: 0.08)
-                        : const Color(0xFFFAF8F6),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: isActive ? _kPrimary : _kBorder,
-                      width: isActive ? 1.5 : 1.0,
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.public_rounded, color: _kPrimary, size: 20),
+                        const SizedBox(width: 8),
+                        const Text(
+                          'Pilih Zona Waktu',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                            color: _kTextPrimary,
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.schedule_rounded,
-                        size: 18,
-                        color: isActive ? _kPrimary : _kTextMuted,
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                    const SizedBox(height: 6),
+                    const Text(
+                      'Waktu jadwal akan dikonversi ke zona yang dipilih.',
+                      style: TextStyle(fontSize: 13, color: _kTextMuted),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              // Daftar zona — bisa di-scroll
+              Expanded(
+                child: ListView(
+                  controller: scrollController,
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
+                  children: ZonaWaktu.values.map((zona) {
+                    final isActive = zona == _zonaAktif;
+                    final now = DateTime.now();
+                    final converted = konversiKeZona(now, zona);
+                    // Label ringkas: "WIB  07:30"
+                    final jamStr =
+                        '${converted.hour.toString().padLeft(2, '0')}:${converted.minute.toString().padLeft(2, '0')}';
+                    return GestureDetector(
+                      onTap: () {
+                        setState(() => _zonaAktif = zona);
+                        Navigator.pop(ctx);
+                      },
+                      child: Container(
+                        margin: const EdgeInsets.only(bottom: 10),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 14,
+                        ),
+                        decoration: BoxDecoration(
+                          color: isActive
+                              ? _kPrimary.withValues(alpha: 0.08)
+                              : const Color(0xFFFAF8F6),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: isActive ? _kPrimary : _kBorder,
+                            width: isActive ? 1.5 : 1.0,
+                          ),
+                        ),
+                        child: Row(
                           children: [
+                            Icon(
+                              Icons.schedule_rounded,
+                              size: 18,
+                              color: isActive ? _kPrimary : _kTextMuted,
+                            ),
+                            const SizedBox(width: 12),
+                            // Nama zona waktu (ringkas)
+                            Expanded(
+                              child: Text(
+                                zona.label,
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: isActive ? _kPrimary : _kTextPrimary,
+                                ),
+                              ),
+                            ),
+                            // Jam saat ini di zona tersebut
                             Text(
-                              _zonaLabel(zona),
+                              jamStr,
                               style: TextStyle(
                                 fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                                color: isActive ? _kPrimary : _kTextPrimary,
+                                fontWeight: FontWeight.w700,
+                                color: isActive ? _kPrimary : _kTextMuted,
                               ),
                             ),
-                            Text(
-                              _zonaDescription(zona, now),
-                              style: const TextStyle(
-                                fontSize: 12,
-                                color: _kTextMuted,
-                              ),
-                            ),
+                            if (isActive) ...[
+                              const SizedBox(width: 8),
+                              Icon(Icons.check_circle_rounded,
+                                  size: 18, color: _kPrimary),
+                            ],
                           ],
                         ),
                       ),
-                      Text(
-                        previewStr,
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: isActive ? _kPrimary : _kTextMuted,
-                        ),
-                      ),
-                      if (isActive) ...[
-                        const SizedBox(width: 8),
-                        Icon(Icons.check_circle_rounded,
-                            size: 18, color: _kPrimary),
-                      ],
-                    ],
-                  ),
+                    );
+                  }).toList(),
                 ),
-              );
-            }),
-          ],
+              ),
+            ],
+          ),
         ),
       ),
     );
-  }
-
-  String _zonaLabel(ZonaWaktu zona) {
-    switch (zona) {
-      case ZonaWaktu.wib:
-        return 'WIB — Waktu Indonesia Barat';
-      case ZonaWaktu.wita:
-        return 'WITA — Waktu Indonesia Tengah';
-      case ZonaWaktu.wit:
-        return 'WIT — Waktu Indonesia Timur';
-      case ZonaWaktu.london:
-        return 'London (GMT/BST)';
-    }
   }
 
   String _zonaDescription(ZonaWaktu zona, DateTime dt) {
@@ -371,20 +372,8 @@ class _JadwalScreenState extends State<JadwalScreen> {
       appBar: AppBar(
         backgroundColor: _kBg,
         elevation: 0,
-        title: Row(
-          children: [
-            Icon(MdiIcons.calendarCheck, color: _kPrimary, size: 26),
-            const SizedBox(width: 10),
-            const Text(
-              'Jadwal Perawatan',
-              style: TextStyle(
-                color: _kTextPrimary,
-                fontWeight: FontWeight.w700,
-                fontSize: 15,
-              ),
-            ),
-          ],
-        ),
+        // FIX #1: Hapus teks "Jadwal Perawatan", sisakan hanya ikon kalender
+        title: Icon(MdiIcons.calendarCheck, color: _kPrimary, size: 26),
         actions: [
           // Tombol pemilih zona waktu
           GestureDetector(
@@ -533,7 +522,7 @@ class _JadwalScreenState extends State<JadwalScreen> {
     );
   }
 
-  /// Banner kecil menampilkan zona waktu yang sedang aktif
+  /// Banner kecil menampilkan zona waktu yang sedang aktif beserta detail lengkap
   Widget _buildZonaBanner() {
     final now = DateTime.now();
     final converted = konversiKeZona(now, _zonaAktif);
