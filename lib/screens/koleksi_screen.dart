@@ -18,11 +18,11 @@
 // =============================================================================
 
 import 'dart:io';
-import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
+import 'package:uuid/uuid.dart';
 import '../models/koleksi_model.dart';
 import '../services/koleksi_service.dart';
 
@@ -34,14 +34,16 @@ const _kTextMuted = Color(0xFF6B6B6B);
 const _kBorder = Color(0xFFE8E0DB);
 const _kError = Color(0xFFD32F2F);
 
+// FIX: tambah guard untuk nilai <= 0 agar tidak muncul format aneh
 String _formatRupiah(double value) {
+  if (value <= 0) return 'Rp 0';
   final parts = value.toStringAsFixed(0).split('');
   final result = StringBuffer();
   for (int i = 0; i < parts.length; i++) {
     if (i > 0 && (parts.length - i) % 3 == 0) result.write('.');
     result.write(parts[i]);
   }
-  return 'Rp \${result.toString()}';
+  return 'Rp ${result.toString()}';
 }
 
 class KoleksiScreen extends StatefulWidget {
@@ -141,6 +143,7 @@ class _KoleksiScreenState extends State<KoleksiScreen> {
     );
   }
 
+  // FIX: tambah mounted check setelah await showModalBottomSheet
   void _openForm(BuildContext context, {KoleksiModel? existing}) async {
     await showModalBottomSheet(
       context: context,
@@ -150,25 +153,45 @@ class _KoleksiScreenState extends State<KoleksiScreen> {
         userId: widget.userId,
         existing: existing,
         service: _service,
+        onSuccess: (msg) {
+          // FIX: snackbar ditampilkan dari parent (KoleksiScreen) setelah pop,
+          // bukan dari dalam form, sehingga context masih valid
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(msg),
+                backgroundColor: _kPrimary,
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+            );
+          }
+        },
       ),
     );
-    _loadKoleksi();
+    // FIX: cek mounted sebelum memanggil _loadKoleksi
+    if (mounted) _loadKoleksi();
   }
 
+  // FIX: gunakan rootContext yang di-capture sebelum modal dibuka,
+  // dan pastikan callback tidak menggunakan context yang bisa sudah stale
   void _showDetail(BuildContext context, KoleksiModel item) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => _KoleksiDetail(
+      builder: (modalContext) => _KoleksiDetail(
         item: item,
         onEdit: () {
-          Navigator.pop(context);
-          _openForm(context, existing: item);
+          // FIX: pop modal dulu pakai modalContext, lalu aksi pakai outer context
+          Navigator.pop(modalContext);
+          if (mounted) _openForm(context, existing: item);
         },
         onDelete: () {
-          Navigator.pop(context);
-          _confirmDelete(context, item);
+          Navigator.pop(modalContext);
+          if (mounted) _confirmDelete(context, item);
         },
       ),
     );
@@ -185,7 +208,7 @@ class _KoleksiScreenState extends State<KoleksiScreen> {
           style: TextStyle(fontWeight: FontWeight.w700, color: _kTextPri),
         ),
         content: Text(
-          'Koleksi "\${item.namaSepatu}" akan dihapus secara permanen.',
+          'Koleksi "${item.namaSepatu}" akan dihapus secara permanen.',
           style: const TextStyle(color: _kTextMuted),
         ),
         actions: [
@@ -202,15 +225,23 @@ class _KoleksiScreenState extends State<KoleksiScreen> {
               ),
             ),
             onPressed: () async {
+              // Simpan nama sebelum async agar tetap tersedia
+              final namaHapus = item.namaSepatu;
               await _service.hapusKoleksi(item.id, item.userId);
-              // Guard mounted setelah async gap sebelum menggunakan ctx/context
+
+              // FIX: cek ctx.mounted setelah hapus
               if (!ctx.mounted) return;
               Navigator.pop(ctx);
+
+              // FIX: reload via parent state, lalu cek mounted lagi
               await _loadKoleksi();
-              if (!ctx.mounted) return;
-              ScaffoldMessenger.of(ctx).showSnackBar(
+
+              // FIX: gunakan outer context (KoleksiScreen) yang lebih stabil
+              // daripada ctx dari dialog yang sudah di-pop
+              if (!mounted) return;
+              ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text('"\${item.namaSepatu}" dihapus'),
+                  content: Text('"$namaHapus" dihapus'),
                   backgroundColor: _kError,
                   behavior: SnackBarBehavior.floating,
                   shape: RoundedRectangleBorder(
@@ -294,7 +325,8 @@ class _EmptyState extends StatelessWidget {
   }
 }
 
-// Card hanya menampilkan gambar, nama, dan merek
+// FIX: layout card diperbaiki — pakai Column biasa dengan Expanded untuk gambar,
+// sehingga gambar mengisi sisa ruang dan teks di bawah tidak overflow
 class _KoleksiCard extends StatelessWidget {
   final KoleksiModel item;
   final VoidCallback onTap;
@@ -320,22 +352,17 @@ class _KoleksiCard extends StatelessWidget {
             ),
           ],
         ),
-        // FIX: Ganti Column menjadi Column dalam Flexible agar tidak overflow.
-        // Bungkus seluruh isi card dengan Column yang menggunakan mainAxisSize.min
-        // dan bungkus bagian teks dengan Flexible supaya konten teks tidak
-        // memaksa tinggi card melebihi batas yang diberikan GridView.
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
           children: [
-            // Gambar mengisi sisa ruang yang tersedia (fleksibel)
-            Flexible(
+            // FIX: Expanded (bukan Flexible+mainAxisSize.min) agar gambar
+            // benar-benar mengisi sisa tinggi yang diberikan GridView
+            Expanded(
               child: ClipRRect(
                 borderRadius: const BorderRadius.vertical(
                   top: Radius.circular(14),
                 ),
-                child: AspectRatio(
-                  aspectRatio: 1.0,
+                child: SizedBox.expand(
                   child: hasImage
                       ? Image.file(
                           File(item.images.first),
@@ -626,14 +653,18 @@ class _KoleksiDetailState extends State<_KoleksiDetail> {
   }
 }
 
+// FIX: tambah parameter onSuccess callback agar snackbar ditampilkan
+// dari parent setelah form di-pop, bukan dari dalam form itu sendiri
 class _KoleksiForm extends StatefulWidget {
   final int userId;
   final KoleksiModel? existing;
   final KoleksiService service;
+  final void Function(String msg) onSuccess;
 
   const _KoleksiForm({
     required this.userId,
     required this.service,
+    required this.onSuccess,
     this.existing,
   });
 
@@ -739,6 +770,7 @@ class _KoleksiFormState extends State<_KoleksiForm> {
   void _removeImage(int index) => setState(() => _images.removeAt(index));
 
   void _showSnack(String msg) {
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(msg),
@@ -763,6 +795,10 @@ class _KoleksiFormState extends State<_KoleksiForm> {
         ) ??
         0.0;
 
+    final successMsg = _isEdit
+        ? 'Koleksi berhasil diperbarui'
+        : 'Koleksi berhasil ditambahkan';
+
     if (_isEdit) {
       final updated = KoleksiModel(
         id: widget.existing!.id,
@@ -776,9 +812,9 @@ class _KoleksiFormState extends State<_KoleksiForm> {
       );
       await widget.service.updateKoleksi(updated);
     } else {
-      final id =
-          DateTime.now().millisecondsSinceEpoch.toString() +
-          Random().nextInt(9999).toString();
+      // FIX: gunakan UUID v4 agar ID benar-benar unik, tidak ada risiko
+      // collision seperti saat menggunakan timestamp + random int
+      final id = const Uuid().v4();
       final koleksi = KoleksiModel(
         id: id,
         userId: widget.userId,
@@ -792,15 +828,13 @@ class _KoleksiFormState extends State<_KoleksiForm> {
       await widget.service.tambahKoleksi(koleksi);
     }
 
+    if (!mounted) return;
     setState(() => _isLoading = false);
-    if (mounted) {
-      Navigator.pop(context);
-      _showSnack(
-        _isEdit
-            ? 'Koleksi berhasil diperbarui'
-            : 'Koleksi berhasil ditambahkan',
-      );
-    }
+
+    // FIX: pop form dulu, lalu panggil onSuccess callback agar snackbar
+    // ditampilkan oleh parent yang context-nya masih valid
+    Navigator.pop(context);
+    widget.onSuccess(successMsg);
   }
 
   @override
@@ -887,8 +921,13 @@ class _KoleksiFormState extends State<_KoleksiForm> {
                         if (v == null || v.trim().isEmpty) {
                           return 'Wajib diisi';
                         }
-                        if (double.tryParse(v) == null) {
+                        final parsed = double.tryParse(v);
+                        if (parsed == null) {
                           return 'Masukkan angka yang valid';
+                        }
+                        // FIX: validasi harga harus lebih dari 0
+                        if (parsed <= 0) {
+                          return 'Harga harus lebih dari 0';
                         }
                         return null;
                       },
