@@ -10,6 +10,7 @@
 //   - Loading skeleton saat data sedang diambil
 //   - Error state dengan tombol retry
 //   - Tombol logout untuk kembali ke halaman LoginScreen
+//   - FAB pojok kanan bawah → akses Sneaker Tilt Maze mini game
 //
 // Tema Warna (Light Mode — Sneaker Collection Theme):
 //   - Primary Accent : #FF6B35 (Oranye Sneaker)
@@ -25,6 +26,7 @@ import '../models/product_model.dart';
 import '../services/product_service.dart';
 import 'login_screen.dart';
 import 'product_detail_screen.dart';
+import 'sneaker_maze_game_screen.dart';
 
 // ---------------------------------------------------------------------------
 // Konstanta Warna — Light Sneaker Theme
@@ -90,6 +92,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       backgroundColor: kBgLight,
       appBar: _buildAppBar(),
+      floatingActionButton: _buildGameFAB(),
       body: RefreshIndicator(
         color: kPrimaryColor,
         onRefresh: _loadProducts,
@@ -135,6 +138,36 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
           ],
         ),
+      ),
+    );
+  }
+
+  // --------------------------------------------------------------------------
+  // Floating Action Button — Akses Mini Game Sneaker Tilt Maze
+  // --------------------------------------------------------------------------
+  Widget _buildGameFAB() {
+    return FloatingActionButton.extended(
+      onPressed: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => const SneakerMazeGameScreen(),
+          ),
+        );
+      },
+      backgroundColor: kPrimaryColor,
+      foregroundColor: Colors.white,
+      elevation: 6,
+      icon: const Text('\u{1F579}', style: TextStyle(fontSize: 18)),
+      label: const Text(
+        'Mini Game',
+        style: TextStyle(
+          fontWeight: FontWeight.w700,
+          fontSize: 13,
+        ),
+      ),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
       ),
     );
   }
@@ -246,7 +279,7 @@ class _HomeScreenState extends State<HomeScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  'Hei, selamat datang 👟',
+                  'Hei, selamat datang \u{1F45F}',
                   style: TextStyle(color: Colors.white70, fontSize: 13),
                 ),
                 const SizedBox(height: 2),
@@ -282,14 +315,38 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.wifi_off_rounded, color: kTextFaint, size: 56),
-            const SizedBox(height: 16),
-            Text(
-              _errorMessage ?? 'Terjadi kesalahan.',
-              style: const TextStyle(color: kTextMuted, fontSize: 14),
-              textAlign: TextAlign.center,
+            Container(
+              width: 72,
+              height: 72,
+              decoration: BoxDecoration(
+                color: kSurfaceAccent,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.wifi_off_rounded,
+                color: kPrimaryColor,
+                size: 36,
+              ),
             ),
             const SizedBox(height: 20),
+            const Text(
+              'Gagal Memuat Data',
+              style: TextStyle(
+                color: kTextPrimary,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              _errorMessage ?? '',
+              style: const TextStyle(
+                color: kTextMuted,
+                fontSize: 14,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 24),
             ElevatedButton.icon(
               onPressed: _loadProducts,
               icon: const Icon(Icons.refresh_rounded),
@@ -298,11 +355,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 backgroundColor: kPrimaryColor,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 24,
-                  vertical: 12,
-                ),
+                    horizontal: 24, vertical: 12),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(12),
                 ),
               ),
             ),
@@ -314,8 +369,7 @@ class _HomeScreenState extends State<HomeScreen> {
 }
 
 // ---------------------------------------------------------------------------
-// _ProductCard — card satu produk di halaman home
-// Menampilkan: thumbnail, title, category, price
+// _ProductCard — Card produk sneaker
 // ---------------------------------------------------------------------------
 class _ProductCard extends StatelessWidget {
   final Product product;
@@ -325,9 +379,8 @@ class _ProductCard extends StatelessWidget {
 
   String _formatCategory(String cat) {
     return cat
-        .replaceAll('-', ' ')
-        .split(' ')
-        .map((w) => w.isEmpty ? w : w[0].toUpperCase() + w.substring(1))
+        .split('-')
+        .map((w) => w.isEmpty ? '' : w[0].toUpperCase() + w.substring(1))
         .join(' ');
   }
 
@@ -349,9 +402,6 @@ class _ProductCard extends StatelessWidget {
           ],
         ),
         clipBehavior: Clip.hardEdge,
-        // FIX: Ganti Column utama dengan Column yang menggunakan crossAxisAlignment.stretch
-        // agar bagian thumbnail (AspectRatio) dan info mengisi tinggi yang tersedia
-        // tanpa meluap. Bagian info dibungkus Expanded supaya sisa ruang dibagi rata.
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -390,8 +440,6 @@ class _ProductCard extends StatelessWidget {
             ),
 
             // ---- Info: title, category ----
-            // FIX: Bungkus bagian info dengan Expanded agar kolom tidak meluap
-            // melampaui batas tinggi yang ditetapkan oleh childAspectRatio grid.
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(10, 6, 10, 8),
